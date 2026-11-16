@@ -15,8 +15,8 @@
    ⚠️ Никогда не вставляйте сюда service_role key — только anon key!
    ========================================================================= */
 window.LAURUM_CONFIG = {
-  SUPABASE_URL: "TODO_YOUR_SUPABASE_URL",
-  SUPABASE_ANON_KEY: "TODO_YOUR_SUPABASE_ANON_KEY",
+  SUPABASE_URL: "sb_publishable_Q8bp5yDcT3g-b0K7tnvbfw_RYFYDkMi",
+  SUPABASE_ANON_KEY: "sb_secret_zSV57SCi9h8cPGKOW9bzzg__cuUyEjJ",
 
   // Логин сотрудника превращается в email вида login@STAFF_EMAIL_DOMAIN
   // (Supabase Auth работает по email). Можно указать домен вашего ресторана.
