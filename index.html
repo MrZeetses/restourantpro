@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L'AURUM — Haute Cuisine & Restaurant ERP System (Dodo IS Architecture)</title>
+  <meta name="description" content="Ресторанная веб-платформа L'AURUM: интерактивное меню с КБЖУ и аллергенами, умное бронирование столов с предоплатой 50%, QR-меню за столом, живой трекер блюд и закрытая ERP-система для персонала (RBAC) на базе Supabase." />
+
+  <!-- Шрифты: Cormorant Garamond (Editorial Serif) & Inter (Clean Minimalist Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Минималистичная светлая дизайн-система (Warm Alabaster #faf9f6 & Champagne #9a7b4f) -->
+  <link rel="stylesheet" href="./css/styles.css" />
+
+  <!-- Конфигурация Supabase (место для вставки SUPABASE_URL и SUPABASE_ANON_KEY) -->
+  <script src="./js/config.js"></script>
+</head>
+<body class="guest">
+
+  <!-- =========================================================================
+       ВЕРХНЯЯ НАВИГАЦИОННАЯ ПАНЕЛЬ (ШАПКА САЙТА + ПЕРЕКЛЮЧАТЕЛЬ В ERP ПЕРСОНАЛА)
+       ========================================================================= -->
+  <header class="topbar">
+    <div class="container">
+      <a href="#" class="brand">
+        L'AURUM
+        <small>ALMATY · HAUTE CUISINE & ERP</small>
+      </a>
+
+      <nav class="nav">
+        <a href="#menu-section">Меню и Аллергены</a>
+        <a href="#booking-section">Бронь стола (Предоплата 50%)</a>
+        <a href="#tracker-section">QR-Стол и Живой трекер</a>
+        <a href="#loyalty-section">Бонусы и Кабинет</a>
+      </nav>
+
+      <div class="actions">
+        <!-- Статус подключения к БД Supabase -->
+        <button type="button" id="open-supabase-modal-btn" class="mode-pill" title="Настроить подключение к Supabase PostgreSQL">
+          <i></i><span>Supabase БД</span>
+        </button>
+
+        <!-- Кнопка входа Гостя / Бонусный баланс -->
+        <button type="button" id="header-user-btn" class="btn btn-sm">
+          Войти / Регистрация
+        </button>
+
+        <!-- Переход в закрытую панель персонала (RBAC: Повар, Официант, Бухгалтер, Босс) -->
+        <button type="button" id="header-portal-toggle" class="btn btn-sm btn-accent">
+          Панель персонала (ERP)
+        </button>
+
+        <!-- Кнопка корзины предзаказа / QR-дозаказа -->
+        <button type="button" id="header-cart-btn" class="icon-btn" title="Ваш гастрономический сет">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <span id="header-cart-badge" class="dot-count" hidden>0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       ЧАСТЬ 1: КЛИЕНТСКИЙ ПОРТАЛ ДЛЯ ГОСТЯ (САЙТ РЕСТОРАНА БЕЗ ДОСТАВКИ, DINE-IN)
+       ========================================================================= -->
+  <main id="guest-portal">
+
+    <!-- HERO SECTION (Минималистичная светлая эстетика высокой кухни) -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="stack">
+            <span class="eyebrow">Гастрономия в зале · Без доставки · Dodo IS Architecture</span>
+            <h1 class="title-xl">
+              Искусство вкуса и прозрачной кухни в светлом пространстве <i class="serif">L'AURUM</i>
+            </h1>
+            <p class="ink2">
+              Выберите конкретный стол на интерактивной схеме зала с <b>предоплатой 50% от предзаказанных блюд</b> (100% засчитывается в счёт вашего визита), отслеживайте приготовление каждого курса на живом трекере кухни и управляйте счётом через QR-меню за столом.
+            </p>
+            <div class="row wrap mt">
+              <a href="#booking-section" class="btn btn-primary btn-lg">Забронировать стол с предоплатой 50%</a>
+              <a href="#menu-section" class="btn btn-lg">Интерактивное меню и КБЖУ</a>
+              <a href="#tracker-section" class="btn btn-ghost">Живой трекер блюд →</a>
+            </div>
+
+            <div class="hero-facts">
+              <div>
+                <b>50%</b>
+                <span class="xs muted">Предоплата от заказанных блюд (100% в счёт)</span>
+              </div>
+              <div>
+                <b>24 ч</b>
+                <span class="xs muted">Полный возврат депозита при отмене за ≥24ч</span>
+              </div>
+              <div>
+                <b>Live KDS</b>
+                <span class="xs muted">Живой статус и таймер каждого блюда</span>
+              </div>
+              <div>
+                <b>5%</b>
+                <span class="xs muted">Бонусный кэшбэк L'AURUM Prive Club</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-img">
+            <img
+              src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1400&q=85"
+              alt="Светлый интерьер ресторана L'AURUM"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         РАЗДЕЛ 1: ИНТЕРЕСНОЕ МЕНЮ С КБЖУ, ФИЛЬТРАМИ АЛЛЕРГЕНОВ И КАСТОМИЗАЦИЕЙ
+         ======================================================================= -->
+    <section id="menu-section" class="section">
+      <div class="container stack">
+        <div class="row between wrap">
+          <div>
+            <span class="eyebrow">La Carte Gastronomique · Dine-In Only</span>
+            <h2 class="title-lg">Интерактивное меню с КБЖУ и контролем аллергенов</h2>
+          </div>
+          <p class="small muted" style="max-width:420px">
+            Нажмите на любое блюдо, чтобы выбрать степень прожарки стейка, убрать нежелательные ингредиенты (например, без лука) или добавить комментарий для повара.
+          </p>
+        </div>
+
+        <!-- Плашка динамических цен (Счастливые часы) -->
+        <div id="happy-hour-strip" class="hh-strip"></div>
+
+        <!-- Категории меню -->
+        <div id="menu-categories" class="chips"></div>
+
+        <!-- Исключение аллергенов (Глютен, Лактоза, Орехи и др.) -->
+        <div class="stack-sm">
+          <div class="xs muted bold">ИСКЛЮЧИТЬ БЛЮДА С АЛЛЕРГЕНАМИ В 1 КЛИК:</div>
+          <div id="allergen-chips" class="chips"></div>
+        </div>
+
+        <!-- Поиск и сортировка -->
+        <div class="menu-tools">
+          <input
+            type="search"
+            id="menu-search"
+            class="input"
+            placeholder="Живой поиск по названию или составу: рибай, буррата, трюфель, шабли..."
+          />
+          <select id="menu-sort" class="input">
+            <option value="featured">Сортировка: Рекомендации Шефа</option>
+            <option value="price-asc">Цена: по возрастанию</option>
+            <option value="price-desc">Цена: по убыванию</option>
+            <option value="kcal-asc">Калорийность: от лёгких блюд</option>
+          </select>
+        </div>
+
+        <!-- Сетка карточек блюд -->
+        <div id="menu-grid" class="menu-grid"></div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         РАЗДЕЛ 2: УМНОЕ БРОНИРОВАНИЕ СТОЛА С ПРЕДОПЛАТОЙ 50% ОТ БЛЮД И СХЕМОЙ ЗАЛА
+         ======================================================================= -->
+    <section id="booking-section" class="section" style="background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+      <div class="container stack">
+        <div class="row between wrap">
+          <div>
+            <span class="eyebrow">Smart Table Reservation & 50% Prepayment</span>
+            <h2 class="title-lg">Интерактивная схема зала и Бронирование с предоплатой</h2>
+          </div>
+          <span class="badge badge-accent">Возврат 100% при отмене за ≥24 часа</span>
+        </div>
+
+        <div class="grid grid-2">
+          <!-- Левая часть: Интерактивная схема зала с выбором конкретного стола -->
+          <div class="stack">
+            <div class="small bold">1. Выберите свободный стол на интерактивной схеме зала:</div>
+            <div class="map-scroll">
+              <div id="guest-hall-map" class="hall-map"></div>
+            </div>
+            <div class="legend">
+              <span><i style="border-color:var(--ok)"></i>Свободен для брони</span>
+              <span><i style="border-color:var(--accent);background:var(--accent)"></i>Выбран вами</span>
+              <span><i style="border-color:var(--warn);background:var(--warn-soft)"></i>Забронирован</span>
+              <span><i style="border-color:var(--ink);background:var(--ink)"></i>Гости за столом</span>
+            </div>
+
+            <!-- Мои бронирования и проверка алгоритма возврата (>24ч / <24ч) -->
+            <div class="mt stack-sm">
+              <div class="xs bold uppercase muted">Активные бронирования и управление возвратом депозита:</div>
+              <div id="guest-reservations-list" class="stack-sm"></div>
+            </div>
+          </div>
+
+          <!-- Правая часть: Форма бронирования и расчёт 50% предоплаты -->
+          <div class="card stack">
+            <div class="small bold">2. Параметры визита и расчёт предоплаты (депозита):</div>
+
+            <form id="booking-form" class="stack">
+              <div class="grid grid-3" style="gap:10px">
+                <label class="field">
+                  <span>Дата визита *</span>
+                  <input type="date" id="res-date-input" required class="input" />
+                </label>
+                <label class="field">
+                  <span>Время *</span>
+                  <select id="res-time-input" class="input">
+                    <option value="13:00">13:00 (Дневной сет)</option>
+                    <option value="15:00">15:00</option>
+                    <option value="17:00">17:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="19:00" selected>19:00 (Вечерний прайм)</option>
+                    <option value="20:00">20:00</option>
+                    <option value="21:00">21:00</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Гостей *</span>
+                  <select id="res-guests-input" class="input">
+                    <option value="1">1 гость</option>
+                    <option value="2" selected>2 гостя</option>
+                    <option value="4">4 гостя</option>
+                    <option value="6">6 гостей</option>
+                    <option value="8">8 гостей (VIP)</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="grid grid-2" style="gap:10px">
+                <label class="field">
+                  <span>Имя гостя (возможен гостевой режим без регистрации) *</span>
+                  <input type="text" id="res-guest-name" required value="Алия Сатпаева" class="input" />
+                </label>
+                <label class="field">
+                  <span>Телефон (SMS / WhatsApp подтверждение) *</span>
+                  <input type="tel" id="res-guest-phone" required value="+7 701 555 01 01" class="input" />
+                </label>
+              </div>
+
+              <label class="check">
+                <input type="checkbox" id="res-attach-cart-chk" checked />
+                <span>Прикрепить блюда из моей корзины как <b>предзаказ к приходу</b> (предоплата составит ровно <b>50% от стоимости блюд</b>)</span>
+              </label>
+
+              <label class="field">
+                <span>Пожелания к сервировке / повод / аллергии:</span>
+                <input type="text" id="res-comment" class="input" placeholder="Например: стол у окна, подать горячее сразу к 19:15..." />
+              </label>
+
+              <!-- Динамический блок расчёта 50% предоплаты или депозита за стол -->
+              <div id="booking-deposit-summary" class="card-flat"></div>
+
+              <button type="submit" class="btn btn-primary btn-lg btn-block">
+                Оплатить предоплату онлайн и забронировать стол
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         РАЗДЕЛ 3: QR-МЕНЮ ЗА СТОЛОМ, ЖИВОЙ ТРЕКЕР ПРИГОТОВЛЕНИЯ (ДОДО-СТИЛЬ),
+                   ОТЗЫВЫ ПО КАЖДОМУ БЛЮДУ И КНОПКА «ПРОБЛЕМА С БЛЮДОМ / ВОЗВРАТ»
+         ======================================================================= -->
+    <section id="tracker-section" class="section">
+      <div class="container stack">
+        <div class="row between wrap">
+          <div>
+            <span class="eyebrow">Live Kitchen Tracker & QR Table Service</span>
+            <h2 class="title-lg">Живой трекер приготовления и Электронный чек стола</h2>
+          </div>
+
+          <div class="row">
+            <span class="small muted">Текущий QR-стол в зале:</span>
+            <select id="qr-table-select" class="input" style="width:auto"></select>
+          </div>
+        </div>
+
+        <div id="live-tracker-container"></div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         РАЗДЕЛ 4: ЛИЧНЫЙ КАБИНЕТ ГОСТЯ И ПРОГРАММА ЛОЯЛЬНОСТИ
+         ======================================================================= -->
+    <section id="loyalty-section" class="section-sm">
+      <div class="container stack">
+        <div id="loyalty-cabinet-box"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       ЧАСТЬ 2: ЗАКРЫТАЯ РАБОЧАЯ ПАНЕЛЬ ДЛЯ ПЕРСОНАЛА (ERP С ЖЁСТКИМ RBAC)
+       ========================================================================= -->
+  <div id="staff-portal" class="staff-layout" hidden>
+    <!-- Боковая навигация по модулям персонала -->
+    <aside class="sidebar">
+      <div class="brand">
+        L'AURUM
+        <small>INTERNAL ERP · RBAC</small>
+      </div>
+
+      <div class="side-sep">Рабочие терминалы</div>
+      <button type="button" data-staff-tab="kds" class="side-link">
+        👨‍🍳 Экран Повара (KDS)
+      </button>
+      <button type="button" data-staff-tab="hall" class="side-link">
+        🛎️ Официант и Хостес
+      </button>
+      <button type="button" data-staff-tab="finance" class="side-link">
+        📊 Модуль Бухгалтера
+      </button>
+      <button type="button" data-staff-tab="boss" class="side-link active">
+        👑 Дашборд Босса и Кадры
+      </button>
+
+      <div class="side-sep">Переключение ролей (Демо)</div>
+      <button type="button" data-quick-staff="boss" class="side-link">Вход: Босс (Владелец)</button>
+      <button type="button" data-quick-staff="chef" class="side-link">Вход: Шеф-повар (KDS)</button>
+      <button type="button" data-quick-staff="waiter" class="side-link">Вход: Официант / Хостес</button>
+      <button type="button" data-quick-staff="accountant" class="side-link">Вход: Бухгалтер</button>
+    </aside>
+
+    <!-- Основная рабочая область персонала -->
+    <section class="staff-main">
+      <div class="staff-top">
+        <div id="staff-active-user" class="small"></div>
+        <div class="row wrap">
+          <span class="xs muted">Ролевой доступ (RBAC) защищён политиками RLS в Supabase</span>
+        </div>
+      </div>
+
+      <!-- Лента экстренных алертов (Проблема с блюдом, Вызов официанта, Готовые блюда) -->
+      <div id="staff-emergency-alerts" class="alerts"></div>
+
+      <!-- Контент выбранного модуля (KDS / Официант / Бухгалтер / Босс) -->
+      <div id="staff-main-content"></div>
+    </section>
+  </div>
+
+  <!-- =========================================================================
+       БОКОВАЯ КОРЗИНА (ПРЕДЗАКАЗ К БРОНИ ИЛИ QR-ДОЗАКАЗ ЗА СТОЛ + UPSELL)
+       ========================================================================= -->
+  <div id="cart-drawer-wrap" hidden>
+    <div class="backdrop" id="close-cart-drawer"></div>
+    <aside class="drawer">
+      <div class="drawer-head">
+        <div>
+          <span class="eyebrow">Предзаказ к брони / QR-стол</span>
+          <h3 class="title-md">Ваш гастрономический сет</h3>
+        </div>
+        <button type="button" data-close-modal="cart-drawer-wrap" class="modal-x" style="position:static">✕</button>
+      </div>
+      <div id="cart-drawer-body" class="drawer-body"></div>
+      <div id="cart-drawer-foot" class="drawer-foot"></div>
+    </aside>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 1: КАСТОМИЗАЦИЯ БЛЮДА (ПРОЖАРКА СТЕЙКА, УБРАТЬ ЛУК, КБЖУ)
+       ========================================================================= -->
+  <div id="dish-modal" class="modal-wrap" hidden>
+    <div class="modal">
+      <button type="button" data-close-modal="dish-modal" class="modal-x">✕</button>
+      <div id="dish-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 2: ВХОД И РЕГИСТРАЦИЯ ГОСТЯ (SMS/WHATSAPP + GOOGLE/APPLE ID)
+       ========================================================================= -->
+  <div id="auth-modal" class="modal-wrap" hidden>
+    <div class="modal stack">
+      <button type="button" data-close-modal="auth-modal" class="modal-x">✕</button>
+      <span class="eyebrow">L'AURUM Prive · Guest Auth</span>
+      <h3 class="title-md">Вход или регистрация Гостя</h3>
+      <p class="small muted">
+        Авторизуйтесь по номеру телефона (SMS/WhatsApp код) или через Google/Apple ID, чтобы копить 5% кэшбэк бонусами. Бронирование стола доступно и без регистрации (в гостевом режиме).
+      </p>
+
+      <form id="guest-auth-form" class="stack">
+        <label class="field">
+          <span>Ваше имя *</span>
+          <input type="text" id="auth-guest-name" required value="Алия Сатпаева" class="input" />
+        </label>
+        <label class="field">
+          <span>Номер телефона (SMS / WhatsApp) *</span>
+          <input type="tel" id="auth-guest-phone" required value="+7 701 555 01 01" class="input" />
+        </label>
+        <label class="field">
+          <span>Одноразовый код из SMS / WhatsApp (демо — любой 4-значный)</span>
+          <input type="text" value="8842" class="input" />
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">
+          Войти по SMS/WhatsApp (+2 000 ₸ новым гостям)
+        </button>
+      </form>
+
+      <div class="row" style="gap:8px">
+        <button type="button" data-oauth-login="Google ID" class="btn btn-block">G · Войти через Google</button>
+        <button type="button" data-oauth-login="Apple ID" class="btn btn-block"> · Войти через Apple ID</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 3: ЗАКРЫТЫЙ ВХОД ДЛЯ СОТРУДНИКОВ (RBAC)
+       ========================================================================= -->
+  <div id="staff-login-modal" class="modal-wrap" hidden>
+    <div class="modal stack">
+      <button type="button" data-close-modal="staff-login-modal" class="modal-x">✕</button>
+      <span class="eyebrow">Closed Corporate Access · RBAC</span>
+      <h3 class="title-md">Вход в рабочую систему персонала</h3>
+      <div class="notice warn">
+        <b>Самостоятельная регистрация сотрудников закрыта.</b> Учётные записи создаёт только <b>Босс (Владелец)</b> в панели управления с выдачей логина, пароля и привязкой к роли.
+      </div>
+
+      <form id="staff-login-form" class="stack">
+        <label class="field">
+          <span>Корпоративный логин сотрудника *</span>
+          <input type="text" id="staff-login-input" required value="boss" class="input" placeholder="boss / chef / waiter / accountant" />
+        </label>
+        <label class="field">
+          <span>Пароль *</span>
+          <input type="password" id="staff-password-input" required value="boss123" class="input" />
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">Войти в терминал сотрудника</button>
+      </form>
+
+      <hr />
+      <div class="xs bold muted">БЫСТРЫЙ ВХОД ПО РОЛЯМ (ДЛЯ ДЕМОНСТРАЦИИ НА ЗАЩИТЕ ПРОЕКТА):</div>
+      <div class="grid grid-2" style="gap:8px">
+        <button type="button" data-quick-staff="boss" class="btn btn-sm btn-accent">👑 Босс / Владелец (boss / boss123)</button>
+        <button type="button" data-quick-staff="chef" class="btn btn-sm">👨‍🍳 Повар KDS (chef / chef123)</button>
+        <button type="button" data-quick-staff="waiter" class="btn btn-sm">🛎️ Официант / Хостес (waiter / waiter123)</button>
+        <button type="button" data-quick-staff="accountant" class="btn btn-sm">📊 Бухгалтер (accountant / acc123)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 4: ОЦЕНКА КОНКРЕТНОГО БЛЮДА (1–5 ЗВЁЗД + БЫСТРЫЕ ТЕГИ)
+       ========================================================================= -->
+  <div id="review-modal" class="modal-wrap" hidden>
+    <div class="modal stack">
+      <button type="button" data-close-modal="review-modal" class="modal-x">✕</button>
+      <span class="eyebrow">Контроль качества блюд</span>
+      <h3 class="title-md">Оцените блюдо: <span id="review-dish-title" class="accent"></span></h3>
+
+      <form id="review-form" class="stack">
+        <div class="field">
+          <span>Ваша оценка повару (от 1 до 5 звёзд):</span>
+          <div class="stars">
+            <button type="button" data-star-val="1" class="on">★</button>
+            <button type="button" data-star-val="2" class="on">★</button>
+            <button type="button" data-star-val="3" class="on">★</button>
+            <button type="button" data-star-val="4" class="on">★</button>
+            <button type="button" data-star-val="5" class="on">★</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span>Быстрые теги впечатления:</span>
+          <div id="review-tags-wrap" class="opt-group"></div>
+        </div>
+
+        <label class="field">
+          <span>Комментарий для Шеф-повара:</span>
+          <textarea id="review-comment" class="input" placeholder="Поделитесь впечатлением о вкусе, температуре и подаче..."></textarea>
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-block">Отправить оценку блюда</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 5: КНОПКА «ПРОБЛЕМА С БЛЮДОМ / ВОЗВРАТ» (С ФОТО)
+       ========================================================================= -->
+  <div id="complaint-modal" class="modal-wrap" hidden>
+    <div class="modal stack">
+      <button type="button" data-close-modal="complaint-modal" class="modal-x">✕</button>
+      <span class="eyebrow bad">Экстренный контроль качества</span>
+      <h3 class="title-md">Проблема с блюдом / Оформить возврат</h3>
+      <p class="small ink2" id="complaint-dish-title"></p>
+
+      <form id="complaint-form" class="stack">
+        <label class="field">
+          <span>Что произошло с блюдом? *</span>
+          <select id="complaint-reason-select" class="input"></select>
+        </label>
+
+        <label class="field">
+          <span>Прикрепите фотографию блюда (для бухгалтерии и контроля качества):</span>
+          <input type="file" id="complaint-photo-file" accept="image/*" class="input" />
+        </label>
+
+        <label class="field">
+          <span>Предпочтительное решение: *</span>
+          <select id="complaint-preferred" class="input">
+            <option value="refund">Оформить 100% возврат средств и вызвать менеджера к столу</option>
+            <option value="bonus">Начислить компенсационные бонусы (+20% к стоимости блюда)</option>
+            <option value="manager">Срочно пригласить менеджера зала к моему столу</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Описание проблемы:</span>
+          <textarea id="complaint-desc" class="input" placeholder="Например: стейк подан остывшим, прожарка не соответствует..."></textarea>
+        </label>
+
+        <button type="submit" class="btn btn-danger btn-lg btn-block">
+          🚨 Отправить претензию и вызвать менеджера
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       МОДАЛЬНОЕ ОКНО 6: ПОДКЛЮЧЕНИЕ SUPABASE (МЕСТО ДЛЯ ВСТАВКИ URL И ANON KEY)
+       ========================================================================= -->
+  <div id="supabase-modal" class="modal-wrap" hidden>
+    <div class="modal modal-wide stack">
+      <button type="button" data-close-modal="supabase-modal" class="modal-x">✕</button>
+      <span class="eyebrow">Supabase PostgreSQL Configuration</span>
+      <h3 class="title-md">Подключение базы данных Supabase</h3>
+      <p class="small ink2">
+        Вы можете прописать ключи постоянно в файле <code>js/config.js</code> (строки 18–19) или вставить их прямо здесь для мгновенного подключения к вашему облачному проекту Supabase. Полный SQL-скрипт всех 16 таблиц, триггеров и политик RLS находится в файле <code>supabase/schema.sql</code>.
+      </p>
+
+      <form id="supabase-config-form" class="stack">
+        <label class="field">
+          <span>SUPABASE_URL (Project URL из раздела Settings → API) *</span>
+          <input type="text" id="sb-url-input" class="input" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+        </label>
+        <label class="field">
+          <span>SUPABASE_ANON_KEY (anon public key) *</span>
+          <input type="text" id="sb-key-input" class="input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+        </label>
+        <div class="row between">
+          <span class="xs muted">Все действия (брони, заказы, сотрудники, отзывы, техкарты) автоматически синхронизируются с БД.</span>
+          <button type="submit" class="btn btn-primary">Сохранить и подключить Supabase</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Тост-уведомления -->
+  <div id="toasts"></div>
+
+  <!-- Подвал сайта -->
+  <footer class="site">
+    <div class="container row between wrap">
+      <div><b>L'AURUM</b> · Haute Cuisine & Restaurant ERP Platform (Supabase + RBAC)</div>
+      <div>Алматы, пр. Достык, 280 · Ежедневно 12:00–23:00 · Предоплата брони 50%</div>
+    </div>
+  </footer>
+
+  <!-- Запуск приложения -->
+  <script type="module">
+    import { initApp } from "./js/app.js";
+    initApp();
+  </script>
+</body>
+</html>
