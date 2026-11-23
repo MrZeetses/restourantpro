@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ВОСТОК ХАУС • Кабинет персонала — Кухня KDS, Касса POS, Меню и Склад</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ИИ АССИСТЕНТ ПЕРСОНАЛА */
+    .ai-fab {
+      position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 45;
+      display: inline-flex; align-items: center; gap: .6rem;
+      padding: .85rem 1.25rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.3);
+      background: linear-gradient(135deg, #1c1917, #f97316); color: #fff;
+      font-weight: 800; font-size: .88rem; cursor: pointer;
+      box-shadow: 0 14px 35px -10px rgba(28, 25, 23, .85);
+      transition: transform .15s, filter .15s;
+    }
+    .ai-fab:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .ai-panel {
+      position: fixed; right: 1.25rem; bottom: 5.25rem; z-index: 45;
+      width: min(415px, calc(100vw - 2rem)); height: min(560px, calc(100vh - 7.5rem));
+      display: flex; flex-direction: column; border-radius: 1.5rem; overflow: hidden;
+      background: rgba(255, 255, 255, .98); border: 1px solid #d6d3d1;
+      -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%);
+      box-shadow: 0 28px 70px -20px rgba(0, 0, 0, .55);
+    }
+    .ai-panel.hidden { display: none; }
+    .ai-msg {
+      max-width: 88%; padding: .7rem .95rem; border-radius: 1rem;
+      font-size: .83rem; line-height: 1.45; word-wrap: break-word;
+    }
+    .ai-msg-user {
+      align-self: flex-end; color: #fff;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-bottom-right-radius: .3rem;
+    }
+    .ai-msg-bot {
+      align-self: flex-start; color: #1c1917;
+      background: #f5f5f4; border: 1px solid #e7e5e4;
+      border-bottom-left-radius: .3rem;
+    }
+    .ai-chip {
+      font-size: .73rem; font-weight: 600; padding: .35rem .75rem; border-radius: 999px;
+      background: #f5f5f4; border: 1px solid #d6d3d1; color: #292524;
+      cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    .ai-chip:hover { background: #ffedd5; border-color: #f97316; color: #c2410c; }
+    .ai-dots span {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: #f97316; margin-right: 4px;
+      animation: aiBounce 1.2s infinite ease-in-out;
+    }
+    .ai-dots span:nth-child(2) { animation-delay: .18s; }
+    .ai-dots span:nth-child(3) { animation-delay: .36s; }
+    @keyframes aiBounce { 0%, 80%, 100% { transform: scale(.6); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-900 antialiased">
+  <div id="app"></div>
+
+  <!-- ИИ АССИСТЕНТ ПЕРСОНАЛА (Восток AI • Аналитик) -->
+  <button id="aiFab" class="ai-fab" type="button" aria-label="Открыть Восток AI Аналитик">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"/>
+      <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/>
+    </svg>
+    <span>Восток AI • ERP</span>
+  </button>
+
+  <section id="aiPanel" class="ai-panel hidden" aria-label="Восток AI Аналитик персонала">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-stone-800 bg-stone-900 text-white">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-orange-500 grid place-items-center text-white font-black text-xs">AI</div>
+        <div>
+          <div class="font-extrabold text-sm leading-tight">Восток AI • Аналитик смены</div>
+          <div class="text-[11px] text-stone-400">Живая сводка по БД: выручка ₸, KDS и склад</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="aiClear" type="button" class="px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-700 text-[11px] font-semibold text-stone-300">Очистить</button>
+        <button id="aiClose" type="button" class="w-7 h-7 rounded-lg bg-stone-800 hover:bg-stone-700 text-xs font-bold">✕</button>
+      </div>
+    </div>
+
+    <div id="aiMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+      <div class="ai-msg ai-msg-bot">
+        Здравствуйте! Я <b>Восток AI • Аналитик</b> для сотрудников ресторана <b>«ВОСТОК ХАУС»</b>.<br><br>
+        Я анализирую живые данные из вашей базы Supabase: выручку в <b>₸</b>, очередь заказов на кухне KDS, стоп-лист и критические остатки на складе.
+      </div>
+    </div>
+
+    <div class="px-3 py-2 border-t border-stone-200 flex gap-1.5 overflow-x-auto no-scrollbar bg-stone-50">
+      <button type="button" class="ai-chip ai-quick" data-prompt="Дай полную оперативную сводку по выручке смены в тенге, активным заказам и стоп-листу.">📊 Сводка смены (₸)</button>
+      <button type="button" class="ai-chip ai-quick" data-prompt="Проверь остатки на складе из базы данных: какие продукты заканчиваются?">📦 Остатки склада</button>
+      <button type="button" class="ai-chip ai-quick" data-prompt="Сколько заказов сейчас на кухне и в доставке?">👨‍🍳 Очередь кухни</button>
+    </div>
+
+    <form id="aiForm" class="p-3 border-t border-stone-200 flex items-center gap-2 bg-white">
+      <input id="aiInput" type="text" class="flex-1 px-3.5 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Спросите про выручку, склад, заказы..." autocomplete="off" required />
+      <button id="aiSendBtn" type="submit" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shrink-0">Отправить</button>
+    </form>
+  </section>
+
+  <script src="images.js"></script>
+  <script src="shared-data.js"></script>
+  <script>
+    const IMAGES = window.VOSTOK_IMAGES || {};
+    const CATEGORIES = window.VOSTOK_CATEGORIES.filter((c) => c.slug !== "all");
+    const STATUS_META = window.VOSTOK_STATUS_META;
+    const ROLE_META = window.VOSTOK_ROLE_META;
+    const STAFF_ROLES = Object.fromEntries(Object.entries(ROLE_META).filter(([, m]) => m.staff));
+    const fmt = window.fmtKZT;
+
+    const initialCfg = window.loadVostokConfig();
+    const initialDb = window.loadSharedDb();
+
+    let savedStaffUser = null;
+    try {
+      const raw = localStorage.getItem("vostok_staff_user_v2");
+      if (raw) savedStaffUser = JSON.parse(raw);
+    } catch (_) {}
+
+    const state = {
+      user: savedStaffUser || {
+        id: "u-1",
+        name: "Рустам Каримов",
+        email: "admin@vostok.kz",
+        role: "admin",
+        shift: true
+      },
+      authOpen: false,
+      authMode: "register",
+      authRole: "admin",
+      staffTab: "analytics", // analytics | kds | pos | courier | menu | inventory | staff | supabase
+      toast: "",
+      // POS-касса
+      posCart: [],
+      posCustomer: "Гость в зале",
+      posPhone: "+7 (701) 000-00-00",
+      posType: "dine_in", // 'dine_in' | 'delivery'
+      posAddress: "",
+      posCashGiven: "",
+      // Форма нового блюда с загрузкой фото в Supabase Storage
+      newDishName: "",
+      newDishCat: "plov",
+      newDishPrice: "2690",
+      newDishWeight: "380",
+      newDishCalories: "640",
+      newDishDesc: "",
+      newDishHit: true,
+      newDishSpicy: false,
+      newDishVeg: false,
+      newDishImageFile: null,
+      newDishImagePreview: "",
+      newDishUploading: false,
+      // База данных и конфигурация Supabase
+      sbUrl: initialCfg.url,
+      sbKey: initialCfg.key,
+      aiFn: initialCfg.aiFn,
+      products: initialDb.products,
+      inventory: initialDb.inventory,
+      staff: initialDb.staff,
+      orders: initialDb.orders,
+      paymentLogs: initialDb.paymentLogs
+    };
+
+    let sbClient = null;
+    let sbChannel = null;
+    let aiHistory = [];
+
+    function getSbClient() {
+      if (!state.sbUrl || !state.sbKey || !window.supabase) return null;
+      if (sbClient) return sbClient;
+      try {
+        sbClient = window.supabase.createClient(state.sbUrl, state.sbKey);
+        return sbClient;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function persistLocal() {
+      window.saveSharedDb({
+        products: state.products,
+        inventory: state.inventory,
+        staff: state.staff,
+        orders: state.orders,
+        paymentLogs: state.paymentLogs
+      });
+      try {
+        if (state.user) localStorage.setItem("vostok_staff_user_v2", JSON.stringify(state.user));
+      } catch (_) {}
+    }
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === "vostok_house_shared_db_v2") {
+        const fresh = window.loadSharedDb();
+        state.products = fresh.products;
+        state.inventory = fresh.inventory;
+        state.staff = fresh.staff;
+        state.orders = fresh.orders;
+        state.paymentLogs = fresh.paymentLogs;
+        render();
+      }
+    });
+
+    async function syncFromSupabase() {
+      const sb = getSbClient();
+      if (!sb) return;
+      try {
+        const [prodRes, invRes, ordRes, profRes, payRes] = await Promise.all([
+          sb.from("products").select("*").order("created_at", { ascending: true }),
+          sb.from("inventory").select("*").order("name", { ascending: true }),
+          sb.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
+          sb.from("vostok_profiles").select("*").neq("role", "customer"),
+          sb.from("payment_logs").select("*").order("created_at", { ascending: false }).limit(30)
+        ]);
+
+        if (prodRes.data && prodRes.data.length > 0) {
+          const cloudProds = prodRes.data.map((p, idx) => ({
+            id: p.id,
+            category_slug: p.category_slug || "plov",
+            name: p.name,
+            description: p.description || "",
+            base_price: Number(p.base_price) || 2500,
+            weight: Number(p.weight_grams || p.weight || 350),
+            calories: Number(p.calories || 550),
+            image: p.image_url || p.image || window.VOSTOK_SEED_PRODUCTS[idx % window.VOSTOK_SEED_PRODUCTS.length].image,
+            is_available: p.is_available !== false,
+            is_hit: Boolean(p.is_hit),
+            is_spicy: Boolean(p.is_spicy),
+            is_veg: Boolean(p.is_veg),
+            sizes: Array.isArray(p.sizes) && p.sizes.length ? p.sizes : [{ label: "Стандарт", mult: 1, g: Number(p.weight_grams || 350) }]
+          }));
+          const cloudIds = new Set(cloudProds.map((x) => x.id));
+          state.products = [
+            ...cloudProds,
+            ...state.products.filter((localP) => !cloudIds.has(localP.id))
+          ];
+        }
+
+        if (invRes.data && invRes.data.length > 0) {
+          state.inventory = invRes.data.map((i) => ({
+            id: i.id,
+            name: i.name,
+            unit: i.unit || "кг",
+            qty: Number(i.quantity ?? i.qty ?? 0),
+            min: Number(i.min_threshold ?? i.min ?? 5)
+          }));
+        }
+
+        if (ordRes.data && ordRes.data.length > 0) {
+          state.orders = ordRes.data.map((o) => ({
+            id: String(o.id),
+            number: Number(o.order_number || 101),
+            customer: o.customer_name || "Гость",
+            phone: o.customer_phone || "",
+            type: o.delivery_type === "pickup" ? "dine_in" : (o.delivery_type || "delivery"),
+            address: o.address || "В зале (свободная посадка)",
+            comment: o.comment || "",
+            paymentMethod: o.payment_method || "card",
+            paymentStatus: o.payment_status || "paid",
+            transactionId: o.transaction_id || "",
+            status: o.status || "new",
+            total: Number(o.total_amount || 0),
+            createdAt: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
+            items: Array.isArray(o.items) ? o.items : []
+          }));
+        }
+
+        if (profRes.data && profRes.data.length > 0) {
+          state.staff = profRes.data.map((m) => ({
+            id: m.id,
+            name: m.full_name || m.email || "Сотрудник",
+            email: m.email || "",
+            role: STAFF_ROLES[m.role] ? m.role : "kitchen",
+            shift: Boolean(m.is_on_shift)
+          }));
+        }
+
+        if (payRes.data && payRes.data.length > 0) {
+          state.paymentLogs = payRes.data;
+        }
+
+        persistLocal();
+        render();
+
+        if (!sbChannel) {
+          sbChannel = sb
+            .channel("vostok-staff-live")
+            .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => syncFromSupabase())
+            .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => syncFromSupabase())
+            .on("postgres_changes", { event: "*", schema: "public", table: "inventory" }, () => syncFromSupabase())
+            .on("postgres_changes", { event: "*", schema: "public", table: "payment_logs" }, () => syncFromSupabase())
+            .subscribe();
+        }
+      } catch (err) {
+        console.warn("Supabase staff sync fallback:", err);
+      }
+    }
+
+    function notify(msg) {
+      state.toast = msg;
+      render();
+      setTimeout(() => {
+        if (state.toast === msg) {
+          state.toast = "";
+          render();
+        }
+      }, 3200);
+    }
+
+    // Конвертация файла в DataURL (для мгновенного превью и резервного сохранения)
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Загрузка фото блюда в Supabase Storage (bucket: menu-images)
+    async function uploadImageToSupabaseStorage(file) {
+      const sb = getSbClient();
+      const fallbackDataUrl = await fileToDataUrl(file);
+      if (!sb) return { url: fallbackDataUrl, storageUsed: false };
+
+      try {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const filePath = `dishes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext || "jpg"}`;
+        const { error: upErr } = await sb.storage
+          .from("menu-images")
+          .upload(filePath, file, { cacheControl: "3600", upsert: true, contentType: file.type || "image/jpeg" });
+
+        if (upErr) {
+          console.warn("Supabase Storage upload fallback to DataURL:", upErr.message);
+          return { url: fallbackDataUrl, storageUsed: false };
+        }
+
+        const { data: pubData } = sb.storage.from("menu-images").getPublicUrl(filePath);
+        if (pubData?.publicUrl) {
+          return { url: pubData.publicUrl, storageUsed: true };
+        }
+      } catch (err) {
+        console.warn("Storage upload error:", err);
+      }
+      return { url: fallbackDataUrl, storageUsed: false };
+    }
+
+    function render() {
+      const root = document.getElementById("app");
+      root.innerHTML = renderStaffView() + renderAuthModal() + renderToast();
+      bindStaffEvents();
+    }
+
+    function renderToast() {
+      if (!state.toast) return "";
+      return `<div class="fixed bottom-20 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold border border-stone-700">${state.toast}</div>`;
+    }
+
+    function renderStaffView() {
+      const revenue = state.orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + Number(o.total || 0), 0);
+      const avgCheck = state.orders.length ? Math.round(revenue / state.orders.length) : 0;
+      const kds = state.orders.filter((o) => ["new", "cooking", "ready"].includes(o.status));
+      const courierQ = state.orders.filter((o) => o.type === "delivery" && ["ready", "delivering"].includes(o.status));
+      const lowInvCount = state.inventory.filter((i) => Number(i.qty) <= Number(i.min)).length;
+      const stoppedCount = state.products.filter((p) => !p.is_available).length;
+
+      const tabs = [
+        { id: "analytics", label: "📊 Аналитика" },
+        { id: "kds",       label: `👨‍🍳 Кухня (KDS) • ${kds.length}` },
+        { id: "pos",       label: "💳 Касса (POS)" },
+        { id: "courier",   label: `🚚 Курьер • ${courierQ.length}` },
+        { id: "menu",      label: `🍛 Меню и Фото (${state.products.length})` },
+        { id: "inventory", label: `📦 Склад ${lowInvCount ? `(${lowInvCount}!)` : ""}` },
+        { id: "staff",     label: "👥 Персонал и роли" },
+        { id: "supabase",  label: "☁️ Supabase" }
+      ];
+
+      return `
+        <header class="bg-stone-900 text-white sticky top-0 z-30 shadow-md">
+          <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center font-black text-lg shadow">В</div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-extrabold text-sm sm:text-base">ВОСТОК ХАУС • ПЕРСОНАЛ</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-500/20 text-orange-300">
+                    ${ROLE_META[state.user?.role || "admin"]?.label}
+                  </span>
+                </div>
+                <div class="text-[11px] text-stone-400">
+                  ${state.user?.name || "Сотрудник"} • ${state.sbUrl ? "Supabase Live подключён" : "Локальный режим"}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a href="index.html" class="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-xs font-semibold text-stone-200">
+                ↗ Витрина клиентов
+              </a>
+              <button id="open-staff-auth-btn" class="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold">
+                👤 Регистрация / Роль
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-stone-800 bg-stone-900/95">
+            <div class="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto no-scrollbar py-2">
+              ${tabs.map((t) => `
+                <button data-stab="${t.id}" class="stab-btn px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${state.staffTab === t.id ? "bg-orange-500 text-white shadow" : "text-stone-300 hover:bg-stone-800"}">${t.label}</button>
+              `).join("")}
+            </div>
+          </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 pb-24">
+          <!-- 1. АНАЛИТИКА И ЖУРНАЛ ОПЛАТ -->
+          ${state.staffTab === "analytics" ? `
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <div class="text-xs text-stone-500 font-semibold">Выручка смены</div>
+                <div class="text-2xl font-extrabold mt-1 text-emerald-600">${fmt(revenue)}</div>
+                <div class="text-[11px] text-stone-400 mt-1">Средний чек: ${fmt(avgCheck)}</div>
+              </div>
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <div class="text-xs text-stone-500 font-semibold">Всего заказов</div>
+                <div class="text-2xl font-extrabold mt-1">${state.orders.length}</div>
+                <div class="text-[11px] text-stone-400 mt-1">Доставка и В зале</div>
+              </div>
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <div class="text-xs text-stone-500 font-semibold">Очередь кухни (KDS)</div>
+                <div class="text-2xl font-extrabold mt-1 text-orange-600">${kds.length}</div>
+                <div class="text-[11px] text-stone-400 mt-1">Норматив SLA: до 20 мин</div>
+              </div>
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <div class="text-xs text-stone-500 font-semibold">На стопе / Крит. склад</div>
+                <div class="text-2xl font-extrabold mt-1">${stoppedCount} / <span class="${lowInvCount ? "text-rose-600" : ""}">${lowInvCount}</span></div>
+                <div class="text-[11px] text-stone-400 mt-1">Блюд в меню: ${state.products.length}</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70 overflow-x-auto">
+                <h3 class="font-extrabold text-base mb-3">Все заказы ресторана</h3>
+                <table class="w-full text-sm text-left">
+                  <thead class="text-xs text-stone-500 border-b">
+                    <tr>
+                      <th class="pb-2">№</th>
+                      <th class="pb-2">Гость</th>
+                      <th class="pb-2">Формат</th>
+                      <th class="pb-2">Статус</th>
+                      <th class="pb-2 text-right">Сумма (₸)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    ${state.orders.map((o) => `
+                      <tr>
+                        <td class="py-2.5 font-extrabold">#${o.number}</td>
+                        <td class="py-2.5">
+                          <div class="font-semibold text-xs">${o.customer}</div>
+                          <div class="text-[11px] text-stone-400">${o.phone}</div>
+                        </td>
+                        <td class="py-2.5 text-xs">
+                          ${o.type === "delivery" ? "🚚 Доставка" : "🍽️ В зале"}
+                        </td>
+                        <td class="py-2.5">
+                          <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_META[o.status]?.color || "bg-stone-100"}">
+                            ${STATUS_META[o.status]?.label || o.status}
+                          </span>
+                        </td>
+                        <td class="py-2.5 text-right font-extrabold">${fmt(o.total)}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <h3 class="font-extrabold text-base mb-3">Журнал платежей (Эквайринг)</h3>
+                ${state.paymentLogs.length === 0 ? `
+                  <div class="text-xs text-stone-400 py-8 text-center">Транзакций пока нет. Проведите тестовую оплату на витрине клиентов.</div>
+                ` : `
+                  <div class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+                    ${state.paymentLogs.map((log) => `
+                      <div class="p-3 rounded-xl border text-xs ${log.scenario === "success" ? "bg-emerald-50/60 border-emerald-200" : "bg-rose-50/60 border-rose-200"}">
+                        <div class="flex justify-between font-extrabold">
+                          <span class="${log.scenario === "success" ? "text-emerald-800" : "text-rose-800"}">
+                            ${log.scenario === "success" ? "✅ Оплата прошла" : "❌ Оплата не прошла"}
+                          </span>
+                          <span>${fmt(log.amount)}</span>
+                        </div>
+                        <div class="text-[11px] text-stone-600 mt-1">${log.bank_message}</div>
+                        <div class="text-[10px] text-stone-400 mt-1 font-mono">Код: ${log.bank_code} • ${log.transaction_id || ""}</div>
+                      </div>
+                    `).join("")}
+                  </div>
+                `}
+              </div>
+            </div>
+          ` : ""}
+
+          <!-- 2. ЭКРАН КУХНИ (KDS) -->
+          ${state.staffTab === "kds" ? `
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-xl font-extrabold">Экран кухни (KDS — Линия приготовления)</h2>
+                <p class="text-xs text-stone-500">Нажимайте на позиции внутри чека, чтобы отметить готовность отдельных блюд</p>
+              </div>
+            </div>
+            ${kds.length === 0 ? `
+              <div class="bg-white rounded-2xl p-12 text-center text-stone-400 font-semibold">Активных заказов на кухне сейчас нет</div>
+            ` : `
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${kds.map((o) => {
+                  const mins = Math.max(0, Math.floor((Date.now() - o.createdAt) / 60000));
+                  return `
+                    <div class="bg-white rounded-2xl p-5 shadow-sm border-t-4 flex flex-col justify-between ${mins >= 15 ? "border-rose-500" : "border-emerald-500"}">
+                      <div>
+                        <div class="flex justify-between items-center mb-2">
+                          <span class="font-extrabold text-lg">Заказ #${o.number}</span>
+                          <span class="text-xs font-bold px-2.5 py-1 rounded-full ${mins >= 15 ? "bg-rose-100 text-rose-700" : "bg-stone-100 text-stone-700"}">⏱ ${mins} мин</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-stone-500 mb-3 pb-2 border-b border-stone-100">
+                          <span class="font-bold text-stone-700">${o.type === "delivery" ? "🚚 Доставка" : "🍽️ В зале (свободная посадка)"}</span>
+                          <span class="px-2 py-0.5 rounded-full font-bold ${STATUS_META[o.status]?.color}">${STATUS_META[o.status]?.label}</span>
+                        </div>
+                        <div class="space-y-1.5 mb-4">
+                          ${(o.items || []).map((it, idx) => `
+                            <button type="button" data-itemchk="${o.id}:${idx}" class="itemchk-btn w-full text-left p-2 rounded-xl border text-xs flex items-start gap-2 transition ${it.ready ? "bg-emerald-50 border-emerald-200 line-through text-stone-400" : "bg-stone-50 border-stone-200 hover:border-orange-400"}">
+                              <span class="w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${it.ready ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-stone-300"}">${it.ready ? "✓" : ""}</span>
+                              <div>
+                                <b>${it.qty}× ${it.name}</b> (${it.size || "Стандарт"})
+                                ${it.base ? `<div class="text-[11px] text-stone-500">Хлеб: ${it.base}</div>` : ""}
+                                ${it.addons?.length ? `<div class="text-[11px] text-orange-600">+ ${it.addons.join(", ")}</div>` : ""}
+                              </div>
+                            </button>
+                          `).join("")}
+                        </div>
+                        ${o.comment ? `<div class="text-xs bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl mb-3">💬 ${o.comment}</div>` : ""}
+                      </div>
+
+                      <div class="flex gap-2">
+                        ${o.status === "new" ? `<button data-ost="${o.id}:cooking" class="ost-btn flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold">Взять в работу</button>` : ""}
+                        ${o.status === "cooking" ? `<button data-ost="${o.id}:ready" class="ost-btn flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Готово к выдаче</button>` : ""}
+                        ${o.status === "ready" ? `<button data-ost="${o.id}:${o.type === "delivery" ? "delivering" : "completed"}" class="ost-btn flex-1 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold">${o.type === "delivery" ? "Передать курьеру" : "Выдано гостю в зале"}</button>` : ""}
+                        <button data-ost="${o.id}:cancelled" class="ost-btn px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold" title="Отменить заказ">✕</button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `}
+          ` : ""}
+
+          <!-- 3. КАССА (POS) -->
+          ${state.staffTab === "pos" ? `
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="lg:col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                <h3 class="font-extrabold text-base mb-3">Касса POS • Быстрый набор заказа</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  ${state.products.filter((p) => p.is_available).map((p) => `
+                    <button data-posadd="${p.id}" class="posadd-btn p-3 rounded-2xl border border-stone-200 hover:border-orange-500 hover:bg-orange-50/30 text-left flex flex-col justify-between transition">
+                      <div class="flex items-center gap-2">
+                        <img src="${p.image}" class="w-10 h-10 rounded-xl object-cover shrink-0 bg-stone-100" />
+                        <div class="font-bold text-xs line-clamp-2">${p.name}</div>
+                      </div>
+                      <div class="text-xs font-extrabold text-orange-600 mt-2">${fmt(p.base_price)}</div>
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+
+              <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70 space-y-3 h-fit sticky top-28">
+                <h3 class="font-extrabold text-base">Чек кассира</h3>
+                <input id="pos-cust-name" type="text" value="${state.posCustomer}" placeholder="Имя гостя" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" />
+                <div class="grid grid-cols-2 gap-1.5 bg-stone-100 p-1 rounded-xl text-xs font-bold">
+                  <button type="button" data-postype="dine_in" class="postype-btn py-2 rounded-lg ${state.posType === "dine_in" ? "bg-white shadow text-stone-900" : "text-stone-600"}">🍽️ В зале</button>
+                  <button type="button" data-postype="delivery" class="postype-btn py-2 rounded-lg ${state.posType === "delivery" ? "bg-white shadow text-stone-900" : "text-stone-600"}">🚚 Доставка</button>
+                </div>
+                ${state.posType === "delivery" ? `
+                  <input id="pos-addr" type="text" value="${state.posAddress}" placeholder="Адрес доставки" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" />
+                ` : ""}
+
+                <div class="space-y-1.5 text-xs border-y border-stone-100 py-3 max-h-56 overflow-y-auto">
+                  ${state.posCart.map((c, idx) => `
+                    <div class="flex justify-between items-center">
+                      <span class="font-semibold pr-2">${c.name} × ${c.qty}</span>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <b>${fmt(c.price * c.qty)}</b>
+                        <button data-posrem="${idx}" class="posrem-btn text-stone-400 hover:text-rose-600 font-bold">✕</button>
+                      </div>
+                    </div>
+                  `).join("") || `<div class="text-stone-400 text-center py-4">Выберите блюда слева</div>`}
+                </div>
+
+                <div class="flex justify-between font-extrabold text-sm">
+                  <span>Итого к оплате:</span>
+                  <span class="text-orange-600">${fmt(state.posCart.reduce((s, c) => s + c.price * c.qty, 0))}</span>
+                </div>
+
+                <button id="pos-send-btn" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow">
+                  Пробить чек и отправить на кухню
+                </button>
+              </div>
+            </div>
+          ` : ""}
+
+          <!-- 4. КУРЬЕР -->
+          ${state.staffTab === "courier" ? `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${courierQ.map((o) => `
+                <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70">
+                  <div class="flex justify-between items-center mb-2">
+                    <b class="text-lg">Заказ #${o.number}</b>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_META[o.status]?.color}">${STATUS_META[o.status]?.label}</span>
+                  </div>
+                  <div class="text-sm font-extrabold text-orange-600">📍 ${o.address}</div>
+                  <div class="text-xs text-stone-500 mt-1 mb-3">${o.customer} • ${o.phone}</div>
+                  <div class="text-xs text-stone-700 mb-4 border-t border-stone-100 pt-2">
+                    ${(o.items || []).map((i) => `${i.name} × ${i.qty}`).join(", ")}
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="font-extrabold text-sm">${fmt(o.total)}</span>
+                    ${o.status === "ready"
+                      ? `<button data-ost="${o.id}:delivering" class="ost-btn px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">Взять на доставку</button>`
+                      : `<button data-ost="${o.id}:completed" class="ost-btn px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">✓ Доставлен гостю</button>`}
+                  </div>
+                </div>
+              `).join("") || `<div class="md:col-span-2 bg-white rounded-2xl p-10 text-center text-stone-400 font-semibold">Нет готовых заказов на доставку</div>`}
+            </div>
+          ` : ""}
+
+          <!-- 5. МЕНЮ, СТОП-ЛИСТ И ДОБАВЛЕНИЕ БЛЮДА С ЗАГРУЗКОЙ ФОТО В SUPABASE STORAGE -->
+          ${state.staffTab === "menu" ? `
+            <div class="space-y-6">
+              <!-- Форма добавления нового блюда с загрузкой фото в Supabase Storage -->
+              <form id="add-dish-form" class="bg-white rounded-3xl p-6 shadow-sm border border-orange-200 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[11px] font-bold">Supabase Storage • menu-images</span>
+                    <h3 class="font-extrabold text-lg mt-1">Добавить новое блюдо в меню</h3>
+                  </div>
+                  <div class="text-xs text-stone-500">Фото загружается в облако Supabase Storage и сразу появляется на витрине</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Название блюда *</label>
+                    <input id="nd-name" type="text" value="${state.newDishName}" placeholder="Например: Бешбармак по-казахски с казы" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Категория</label>
+                    <select id="nd-cat" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm bg-white">
+                      ${CATEGORIES.map((c) => `<option value="${c.slug}" ${state.newDishCat === c.slug ? "selected" : ""}>${c.name}</option>`).join("")}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Цена в тенге (₸) *</label>
+                    <input id="nd-price" type="number" min="100" step="10" value="${state.newDishPrice}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm font-bold" required />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Описание блюда</label>
+                    <input id="nd-desc" type="text" value="${state.newDishDesc}" placeholder="Состав, способ приготовления в тандыре или казане..." class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Вес порции (г)</label>
+                    <input id="nd-weight" type="number" value="${state.newDishWeight}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-600 mb-1">Калорийность (ккал)</label>
+                    <input id="nd-cal" type="number" value="${state.newDishCalories}" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center pt-1">
+                  <!-- Загрузка фото файла -->
+                  <div class="md:col-span-2 flex flex-wrap items-center gap-3 p-3 rounded-2xl bg-stone-50 border border-dashed border-stone-300">
+                    ${state.newDishImagePreview ? `
+                      <img src="${state.newDishImagePreview}" class="w-16 h-16 rounded-xl object-cover border border-stone-200 shrink-0" />
+                    ` : `
+                      <div class="w-16 h-16 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl font-bold shrink-0">📷</div>
+                    `}
+                    <div class="flex-1 min-w-[200px]">
+                      <label class="block text-xs font-bold text-stone-700 mb-1">Фотография блюда (загрузка в Supabase Storage)</label>
+                      <input id="nd-photo-file" type="file" accept="image/*" class="text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200" />
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <div class="flex flex-wrap gap-3 text-xs font-semibold">
+                      <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input id="nd-hit" type="checkbox" ${state.newDishHit ? "checked" : ""} class="accent-orange-500" /> 🔥 Хит
+                      </label>
+                      <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input id="nd-spicy" type="checkbox" ${state.newDishSpicy ? "checked" : ""} class="accent-rose-500" /> 🌶️ Острое
+                      </label>
+                      <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input id="nd-veg" type="checkbox" ${state.newDishVeg ? "checked" : ""} class="accent-emerald-500" /> 🌿 Без мяса
+                      </label>
+                    </div>
+                    <button type="submit" ${state.newDishUploading ? "disabled" : ""} class="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-extrabold text-xs shadow">
+                      ${state.newDishUploading ? "Загрузка фото в Supabase Storage..." : "+ Добавить блюдо и загрузить фото"}
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <!-- Таблица меню и стоп-лист -->
+              <div class="bg-white rounded-3xl p-5 shadow-sm border border-stone-200/70 overflow-x-auto">
+                <h3 class="font-extrabold text-base mb-4">Управление меню, ценами (₸) и Стоп-листом (${state.products.length} блюд)</h3>
+                <table class="w-full text-sm text-left">
+                  <thead class="text-xs text-stone-500 border-b">
+                    <tr>
+                      <th class="pb-2.5">Фото и блюдо</th>
+                      <th class="pb-2.5">Категория</th>
+                      <th class="pb-2.5">Цена (₸)</th>
+                      <th class="pb-2.5 text-right">Стоп-лист</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    ${state.products.map((p) => {
+                      const catName = CATEGORIES.find((c) => c.slug === p.category_slug)?.name || p.category_slug;
+                      return `
+                        <tr>
+                          <td class="py-3 pr-3">
+                            <div class="flex items-center gap-3">
+                              <img src="${p.image}" class="w-12 h-12 rounded-xl object-cover bg-stone-100 shrink-0" />
+                              <div>
+                                <div class="font-bold text-stone-900">${p.name}</div>
+                                <div class="text-xs text-stone-400 line-clamp-1">${p.weight} г • ${p.calories} ккал</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="py-3 pr-3 text-xs font-semibold text-stone-600">${catName}</td>
+                          <td class="py-3 pr-3">
+                            <div class="flex items-center gap-1">
+                              <input data-priceid="${p.id}" type="number" value="${p.base_price}" class="price-inp w-24 px-2.5 py-1.5 rounded-xl border border-stone-200 text-xs font-extrabold" />
+                              <span class="text-xs font-bold text-stone-500">₸</span>
+                            </div>
+                          </td>
+                          <td class="py-3 text-right">
+                            <button data-stop="${p.id}" class="stop-btn px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${p.is_available ? "bg-rose-50 text-rose-700 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}">
+                              ${p.is_available ? "Поставить на стоп" : "Вернуть в продажу"}
+                            </button>
+                          </td>
+                        </tr>
+                      `;
+                    }).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ""}
+
+          <!-- 6. СКЛАД -->
+          ${state.staffTab === "inventory" ? `
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${state.inventory.map((i) => {
+                const isLow = Number(i.qty) <= Number(i.min);
+                return `
+                  <div class="bg-white rounded-2xl p-4 shadow-sm border ${isLow ? "border-rose-400 bg-rose-50/40" : "border-stone-200"}">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <div class="font-bold text-sm">${i.name}</div>
+                        <div class="text-xs text-stone-500">Мин. порог: ${i.min} ${i.unit}</div>
+                      </div>
+                      ${isLow ? `<span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold">Мало!</span>` : ""}
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                      <span class="text-xl font-extrabold ${isLow ? "text-rose-700" : ""}">${Number(i.qty).toFixed(1)} ${i.unit}</span>
+                      <div class="flex gap-1.5">
+                        <button data-inv="${i.id}:-1" class="inv-btn px-3 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-xs font-bold">-1</button>
+                        <button data-inv="${i.id}:5" class="inv-btn px-3 py-1 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-800 text-xs font-bold">+5</button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          ` : ""}
+
+          <!-- 7. ПЕРСОНАЛ И РОЛИ -->
+          ${state.staffTab === "staff" ? `
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200/70 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 class="font-extrabold text-base">Сотрудники ресторана, роли и смены</h3>
+                  <p class="text-xs text-stone-500">Все изменения ролей и смен синхронизируются с таблицей profiles в Supabase</p>
+                </div>
+                <button id="add-staff-btn" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold">
+                  + Зарегистрировать сотрудника
+                </button>
+              </div>
+              <div class="divide-y">
+                ${state.staff.map((m) => `
+                  <div class="py-3.5 flex flex-wrap justify-between items-center gap-3">
+                    <div>
+                      <div class="font-bold text-sm">${m.name}</div>
+                      <div class="text-xs text-stone-500">${m.email}</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <select data-srole="${m.id}" class="srole-sel px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold bg-white">
+                        ${Object.entries(STAFF_ROLES).map(([k, r]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${r.label}</option>`).join("")}
+                      </select>
+                      <button data-sshift="${m.id}" class="sshift-btn px-3 py-1.5 rounded-xl text-xs font-bold ${m.shift ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 text-stone-600"}">
+                        ${m.shift ? "🟢 На смене" : "⚪ Смена закрыта"}
+                      </button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          ` : ""}
+
+          <!-- 8. НАСТРОЙКИ SUPABASE И EDGE FUNCTION ИИ -->
+          ${state.staffTab === "supabase" ? `
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-stone-200/70 max-w-xl space-y-4">
+              <div>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">Облачная база данных + Storage + Edge AI</span>
+                <h3 class="font-extrabold text-lg mt-1">Подключение Supabase</h3>
+                <p class="text-xs text-stone-500 mt-0.5">
+                  Эти настройки общие для сайта персонала (<code>staff.html</code>) и клиентской витрины (<code>index.html</code>).
+                </p>
+              </div>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-bold text-stone-600 mb-1">Project URL (Supabase)</label>
+                  <input id="sb-url" type="url" value="${state.sbUrl}" placeholder="https://your-project.supabase.co" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-600 mb-1">Anon / Publishable Key</label>
+                  <input id="sb-key" type="text" value="${state.sbKey}" placeholder="sb_publishable_... или eyJhbGci..." class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-600 mb-1">Имя Edge Function ИИ-ассистента</label>
+                  <input id="sb-aifn" type="text" value="${state.aiFn}" placeholder="ertis-ai или vostok-ai" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm font-mono" />
+                </div>
+                <div class="flex flex-wrap gap-2 pt-2">
+                  <button id="sb-save-btn" class="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow">
+                    Сохранить и синхронизировать с Supabase
+                  </button>
+                  <button id="sb-seed-btn" class="px-4 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold">
+                    Загрузить всё меню (26 блюд в ₸) в Supabase
+                  </button>
+                </div>
+              </div>
+            </div>
+          ` : ""}
+        </main>
+      `;
+    }
+
+    function renderAuthModal() {
+      if (!state.authOpen) return "";
+      return `
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative my-8">
+            <button id="close-staff-auth-btn" class="absolute top-5 right-5 w-9 h-9 rounded-full hover:bg-stone-100 font-bold">✕</button>
+            <span class="px-2.5 py-1 rounded-full bg-stone-900 text-orange-400 text-[11px] font-bold">Авторизация персонала</span>
+            <h2 class="text-2xl font-extrabold mt-2">Регистрация сотрудника и выбор роли</h2>
+            <p class="text-xs text-stone-500 mt-1">Выберите должность сотрудника для работы в системе ресторана «ВОСТОК ХАУС»</p>
+
+            <form id="staff-auth-form" class="space-y-3 mt-4">
+              <input id="sauth-name" type="text" placeholder="Имя и фамилия сотрудника" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+              <input id="sauth-email" type="email" placeholder="Рабочий Email" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+              <input id="sauth-pass" type="password" placeholder="Пароль" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+              <div>
+                <label class="block text-xs font-bold text-stone-600 mb-1.5">Выберите роль сотрудника</label>
+                <div class="grid grid-cols-2 gap-2">
+                  ${Object.entries(STAFF_ROLES).map(([k, m]) => `
+                    <button type="button" data-role="${k}" class="role-pick-btn p-2.5 rounded-xl border text-left text-xs transition ${state.authRole === k ? "border-orange-500 bg-orange-50 font-bold text-orange-900" : "border-stone-200 hover:border-stone-300"}">
+                      ${m.label}
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
+              <button type="submit" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow">
+                Зарегистрировать сотрудника и войти
+              </button>
+            </form>
+
+            <div class="mt-4 pt-4 border-t border-stone-100">
+              <div class="text-xs font-semibold text-stone-500 mb-2">Быстрый вход по ролям в 1 клик:</div>
+              <div class="flex flex-wrap gap-1.5">
+                ${Object.entries(STAFF_ROLES).map(([k, m]) => `
+                  <button type="button" data-qrole="${k}" class="quick-role-btn px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-orange-100 text-xs font-bold text-stone-800">${m.label}</button>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function bindStaffEvents() {
+      document.querySelectorAll(".stab-btn").forEach((b) => (b.onclick = () => { state.staffTab = b.dataset.stab; render(); }));
+
+      const openAuth = document.getElementById("open-staff-auth-btn");
+      if (openAuth) openAuth.onclick = () => { state.authOpen = true; render(); };
+      const addStaffBtn = document.getElementById("add-staff-btn");
+      if (addStaffBtn) addStaffBtn.onclick = () => { state.authOpen = true; render(); };
+      const closeAuth = document.getElementById("close-staff-auth-btn");
+      if (closeAuth) closeAuth.onclick = () => { state.authOpen = false; render(); };
+
+      document.querySelectorAll(".role-pick-btn").forEach((b) => (b.onclick = () => { state.authRole = b.dataset.role; render(); }));
+      document.querySelectorAll(".quick-role-btn").forEach((b) => {
+        b.onclick = () => {
+          const r = b.dataset.qrole;
+          const preset = state.staff.find((s) => s.role === r);
+          state.user = preset || { id: `u-${Date.now()}`, name: `Сотрудник (${ROLE_META[r].label})`, role: r, email: `${r}@vostok.kz`, shift: true };
+          state.authOpen = false;
+          if (r === "kitchen") state.staffTab = "kds";
+          else if (r === "cashier") state.staffTab = "pos";
+          else if (r === "courier") state.staffTab = "courier";
+          else state.staffTab = "analytics";
+          persistLocal();
+          notify(`Активна роль: ${ROLE_META[r].label}`);
+        };
+      });
+
+      const staffAuthForm = document.getElementById("staff-auth-form");
+      if (staffAuthForm) {
+        staffAuthForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const name = document.getElementById("sauth-name").value.trim();
+          const email = document.getElementById("sauth-email").value.trim();
+          const pass = document.getElementById("sauth-pass").value;
+          const role = state.authRole;
+          const newMember = { id: crypto.randomUUID ? crypto.randomUUID() : `u-${Date.now()}`, name, email, role, shift: true };
+
+          const sb = getSbClient();
+          if (sb) {
+            try {
+              const { data } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name, role } } });
+              if (data?.user?.id) newMember.id = data.user.id;
+              await sb.from("vostok_profiles").upsert({ id: newMember.id, email, full_name: name, role, is_on_shift: true });
+            } catch (_) {}
+          }
+
+          state.staff = [newMember, ...state.staff.filter((x) => x.email !== email)];
+          state.user = newMember;
+          state.authOpen = false;
+          persistLocal();
+          notify(`Сотрудник ${name} (${ROLE_META[role].label}) зарегистрирован!`);
+        };
+      }
+
+      // KDS: отметка готовности отдельных блюд и смена статуса заказа
+      document.querySelectorAll(".itemchk-btn").forEach((b) => {
+        b.onclick = async () => {
+          const [ordId, idxStr] = b.dataset.itemchk.split(":");
+          const ord = state.orders.find((o) => o.id === ordId);
+          if (ord && ord.items && ord.items[Number(idxStr)]) {
+            ord.items[Number(idxStr)].ready = !ord.items[Number(idxStr)].ready;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("orders").update({ items: ord.items }).eq("id", ord.id); } catch (_) {} }
+            render();
+          }
+        };
+      });
+
+      document.querySelectorAll(".ost-btn").forEach((b) => {
+        b.onclick = async () => {
+          const [id, st] = b.dataset.ost.split(":");
+          const ord = state.orders.find((o) => o.id === id);
+          if (ord) {
+            ord.status = st;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("orders").update({ status: st }).eq("id", id); } catch (_) {} }
+            notify(`Заказ #${ord.number}: ${STATUS_META[st]?.label}`);
+          }
+        };
+      });
+
+      // POS-касса
+      const posCust = document.getElementById("pos-cust-name");
+      if (posCust) posCust.oninput = (e) => { state.posCustomer = e.target.value; };
+      const posAddr = document.getElementById("pos-addr");
+      if (posAddr) posAddr.oninput = (e) => { state.posAddress = e.target.value; };
+      document.querySelectorAll(".postype-btn").forEach((b) => {
+        b.onclick = () => { state.posType = b.dataset.postype; render(); };
+      });
+      document.querySelectorAll(".posadd-btn").forEach((b) => {
+        b.onclick = () => {
+          const p = state.products.find((x) => x.id === b.dataset.posadd);
+          if (!p) return;
+          const ex = state.posCart.find((c) => c.id === p.id);
+          if (ex) ex.qty += 1;
+          else state.posCart.push({ id: p.id, name: p.name, price: p.base_price, qty: 1 });
+          render();
+        };
+      });
+      document.querySelectorAll(".posrem-btn").forEach((b) => {
+        b.onclick = () => {
+          state.posCart.splice(Number(b.dataset.posrem), 1);
+          render();
+        };
+      });
+      const posSend = document.getElementById("pos-send-btn");
+      if (posSend) {
+        posSend.onclick = async () => {
+          if (!state.posCart.length) return;
+          const num = state.orders.length ? Math.max(...state.orders.map((o) => Number(o.number) || 100), 103) + 1 : 104;
+          const total = state.posCart.reduce((s, c) => s + c.price * c.qty, 0);
+          const posOrd = {
+            id: `ord-${Date.now()}`,
+            number: num,
+            customer: state.posCustomer || "Гость в зале",
+            phone: "Касса POS",
+            type: state.posType,
+            address: state.posType === "delivery" ? (state.posAddress || "Доставка") : "В зале (свободная посадка)",
+            comment: "Оформлено через Кассу POS",
+            paymentMethod: "cash",
+            paymentStatus: "paid",
+            transactionId: "POS-" + num,
+            status: "new",
+            total,
+            createdAt: Date.now(),
+            items: state.posCart.map((c) => ({ name: c.name, size: "Стандарт", base: "Тандырная лепёшка", addons: [], qty: c.qty, price: c.price, ready: false }))
+          };
+          state.orders.unshift(posOrd);
+          state.posCart = [];
+          state.staffTab = "kds";
+          persistLocal();
+
+          const sb = getSbClient();
+          if (sb) {
+            try {
+              await sb.from("orders").insert({
+                id: posOrd.id,
+                order_number: posOrd.number,
+                customer_name: posOrd.customer,
+                customer_phone: posOrd.phone,
+                delivery_type: posOrd.type,
+                address: posOrd.address,
+                comment: posOrd.comment,
+                payment_method: "cash",
+                payment_status: "paid",
+                status: "new",
+                total_amount: posOrd.total,
+                items: posOrd.items
+              });
+            } catch (_) {}
+          }
+          notify(`Заказ #${num} на сумму ${fmt(total)} отправлен на кухню`);
+        };
+      }
+
+      // Добавление нового блюда + загрузка фото в Supabase Storage
+      const photoInput = document.getElementById("nd-photo-file");
+      if (photoInput) {
+        photoInput.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          state.newDishName = document.getElementById("nd-name")?.value || state.newDishName;
+          state.newDishCat = document.getElementById("nd-cat")?.value || state.newDishCat;
+          state.newDishPrice = document.getElementById("nd-price")?.value || state.newDishPrice;
+          state.newDishDesc = document.getElementById("nd-desc")?.value || state.newDishDesc;
+          state.newDishWeight = document.getElementById("nd-weight")?.value || state.newDishWeight;
+          state.newDishCalories = document.getElementById("nd-cal")?.value || state.newDishCalories;
+          state.newDishImageFile = file;
+          state.newDishImagePreview = await fileToDataUrl(file);
+          render();
+        };
+      }
+
+      const addDishForm = document.getElementById("add-dish-form");
+      if (addDishForm) {
+        addDishForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const name = document.getElementById("nd-name").value.trim();
+          const category_slug = document.getElementById("nd-cat").value;
+          const base_price = Math.max(100, Number(document.getElementById("nd-price").value) || 2500);
+          const description = document.getElementById("nd-desc").value.trim() || "Фирменное блюдо восточной кухни из свежих продуктов";
+          const weight = Math.max(50, Number(document.getElementById("nd-weight").value) || 350);
+          const calories = Math.max(20, Number(document.getElementById("nd-cal").value) || 550);
+          const is_hit = document.getElementById("nd-hit").checked;
+          const is_spicy = document.getElementById("nd-spicy").checked;
+          const is_veg = document.getElementById("nd-veg").checked;
+
+          state.newDishUploading = true;
+          render();
+
+          let imageUrl = state.newDishImagePreview || IMAGES.plov || "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=600";
+          let storageUsed = false;
+
+          if (state.newDishImageFile) {
+            const upRes = await uploadImageToSupabaseStorage(state.newDishImageFile);
+            imageUrl = upRes.url;
+            storageUsed = upRes.storageUsed;
+          }
+
+          const newProd = {
+            id: `p-${Date.now()}`,
+            category_slug,
+            name,
+            description,
+            base_price,
+            weight,
+            calories,
+            image: imageUrl,
+            is_available: true,
+            is_hit,
+            is_spicy,
+            is_veg,
+            sizes: [
+              { label: "Стандарт", mult: 1, g: weight },
+              { label: "Большая", mult: 1.35, g: Math.round(weight * 1.35) }
+            ]
+          };
+
+          state.products.unshift(newProd);
+          state.newDishName = "";
+          state.newDishDesc = "";
+          state.newDishImageFile = null;
+          state.newDishImagePreview = "";
+          state.newDishUploading = false;
+          persistLocal();
+
+          const sb = getSbClient();
+          if (sb) {
+            try {
+              await sb.from("products").insert({
+                id: newProd.id,
+                category_slug: newProd.category_slug,
+                name: newProd.name,
+                description: newProd.description,
+                base_price: newProd.base_price,
+                weight_grams: newProd.weight,
+                calories: newProd.calories,
+                image_url: newProd.image,
+                is_available: true,
+                is_hit: newProd.is_hit,
+                is_spicy: newProd.is_spicy,
+                is_veg: newProd.is_veg,
+                sizes: newProd.sizes
+              });
+            } catch (err) {
+              console.warn("Supabase product insert fallback:", err);
+            }
+          }
+
+          notify(`Блюдо «${name}» (${fmt(base_price)}) добавлено${storageUsed ? " (фото в Supabase Storage)" : ""}!`);
+        };
+      }
+
+      // Редактирование цен и стоп-лист
+      document.querySelectorAll(".price-inp").forEach((inp) => {
+        inp.onchange = async (e) => {
+          const id = inp.dataset.priceid;
+          const val = Math.max(100, Number(e.target.value) || 1000);
+          const prod = state.products.find((p) => p.id === id);
+          if (prod) {
+            prod.base_price = val;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("products").update({ base_price: val }).eq("id", id); } catch (_) {} }
+            notify(`Цена «${prod.name}» обновлена: ${fmt(val)}`);
+          }
+        };
+      });
+
+      document.querySelectorAll(".stop-btn").forEach((b) => {
+        b.onclick = async () => {
+          const p = state.products.find((x) => x.id === b.dataset.stop);
+          if (p) {
+            p.is_available = !p.is_available;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("products").update({ is_available: p.is_available }).eq("id", p.id); } catch (_) {} }
+            render();
+          }
+        };
+      });
+
+      // Склад
+      document.querySelectorAll(".inv-btn").forEach((b) => {
+        b.onclick = async () => {
+          const [id, d] = b.dataset.inv.split(":");
+          const item = state.inventory.find((x) => x.id === id);
+          if (item) {
+            item.qty = Math.max(0, Number(item.qty) + Number(d));
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("inventory").update({ quantity: item.qty }).eq("id", id); } catch (_) {} }
+            render();
+          }
+        };
+      });
+
+      // Персонал
+      document.querySelectorAll(".srole-sel").forEach((sel) => {
+        sel.onchange = async (e) => {
+          const m = state.staff.find((x) => x.id === sel.dataset.srole);
+          if (m) {
+            m.role = e.target.value;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("vostok_profiles").update({ role: m.role }).eq("id", m.id); } catch (_) {} }
+            notify(`Роль ${m.name} изменена на ${ROLE_META[m.role].label}`);
+          }
+        };
+      });
+      document.querySelectorAll(".sshift-btn").forEach((b) => {
+        b.onclick = async () => {
+          const m = state.staff.find((x) => x.id === b.dataset.sshift);
+          if (m) {
+            m.shift = !m.shift;
+            persistLocal();
+            const sb = getSbClient();
+            if (sb) { try { await sb.from("vostok_profiles").update({ is_on_shift: m.shift }).eq("id", m.id); } catch (_) {} }
+            render();
+          }
+        };
+      });
+
+      // Supabase настройки
+      const sbSave = document.getElementById("sb-save-btn");
+      if (sbSave) {
+        sbSave.onclick = async () => {
+          state.sbUrl = document.getElementById("sb-url").value.trim();
+          state.sbKey = document.getElementById("sb-key").value.trim();
+          state.aiFn = document.getElementById("sb-aifn").value.trim() || "ertis-ai";
+          sbClient = null;
+          window.saveVostokConfig(state.sbUrl, state.sbKey, state.aiFn);
+          await syncFromSupabase();
+          notify("Подключение Supabase сохранено и синхронизировано!");
+        };
+      }
+      const sbSeed = document.getElementById("sb-seed-btn");
+      if (sbSeed) {
+        sbSeed.onclick = async () => {
+          const sb = getSbClient();
+          if (!sb) return notify("Сначала укажите URL и Key Supabase");
+          try {
+            for (const p of state.products) {
+              await sb.from("products").upsert({
+                id: p.id,
+                category_slug: p.category_slug,
+                name: p.name,
+                description: p.description,
+                base_price: p.base_price,
+                weight_grams: p.weight,
+                calories: p.calories,
+                image_url: p.image?.startsWith("http") ? p.image : null,
+                is_available: p.is_available,
+                is_hit: p.is_hit,
+                is_spicy: p.is_spicy,
+                is_veg: p.is_veg,
+                sizes: p.sizes
+              });
+            }
+            notify("Все 26 блюд меню (в ₸) выгружены в Supabase!");
+          } catch (err) {
+            notify("Выполните supabase/schema.sql в SQL Editor");
+          }
+        };
+      }
+    }
+
+    // ==================== ИИ АССИСТЕНТ ПЕРСОНАЛА ====================
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function formatAiText(text) {
+      return escapeHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+        .replace(/\*(.+?)\*/g, "<i>$1</i>")
+        .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 font-mono text-xs font-bold">$1</code>')
+        .replace(/\n/g, "<br>");
+    }
+
+    function appendAiMessage(role, htmlContent) {
+      const box = document.getElementById("aiMessages");
+      const div = document.createElement("div");
+      div.className = `ai-msg ${role === "user" ? "ai-msg-user" : "ai-msg-bot"}`;
+      div.innerHTML = htmlContent;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+
+    function buildStaffAiContext() {
+      const revenue = state.orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + Number(o.total || 0), 0);
+      const kds = state.orders.filter((o) => ["new", "cooking", "ready"].includes(o.status));
+      const invSummary = state.inventory.map((i) => `- ${i.name}: ${i.qty} ${i.unit} (мин. порог: ${i.min} ${i.unit})`).join("\n");
+      const ordSummary = state.orders.slice(0, 10).map((o) => `- Заказ #${o.number} (${o.customer}): ${STATUS_META[o.status]?.label}, ${o.total} ₸`).join("\n");
+
+      return `Ты "Восток AI • Аналитик" — операционный ИИ-помощник персонала и управляющего ресторана восточной кухни "ВОСТОК ХАУС".
+Все суммы указывай в казахстанских тенге (₸).
+ВЫРУЧКА СМЕНЫ: ${revenue} ₸ (всего заказов: ${state.orders.length}, активных на кухне KDS: ${kds.length})
+ПОСЛЕДНИЕ ЗАКАЗЫ В БАЗЕ:
+${ordSummary}
+СКЛАД ПРОДУКТОВ В БАЗЕ:
+${invSummary}
+БЛЮД В МЕНЮ: ${state.products.length} (на стопе: ${state.products.filter((p) => !p.is_available).length})`;
+    }
+
+    async function askStaffAI(userText) {
+      const cleanText = (userText || "").trim();
+      if (!cleanText) return;
+
+      appendAiMessage("user", escapeHtml(cleanText));
+      aiHistory.push({ role: "user", parts: [{ text: cleanText }] });
+
+      const typingEl = appendAiMessage("bot", '<div class="ai-dots"><span></span><span></span><span></span></div>');
+      const sendBtn = document.getElementById("aiSendBtn");
+      const input = document.getElementById("aiInput");
+      sendBtn.disabled = true;
+      input.disabled = true;
+
+      try {
+        const result = await window.callVostokAi({
+          sbUrl: state.sbUrl,
+          sbKey: state.sbKey,
+          aiFn: state.aiFn,
+          systemPrompt: buildStaffAiContext(),
+          history: aiHistory,
+          userText: cleanText,
+          dbSnapshot: {
+            isStaff: true,
+            products: state.products,
+            orders: state.orders,
+            inventory: state.inventory
+          }
+        });
+
+        aiHistory.push({ role: "model", parts: [{ text: result.reply }] });
+        typingEl.innerHTML = formatAiText(result.reply);
+      } catch (err) {
+        aiHistory.pop();
+        typingEl.innerHTML = `<span class="text-rose-600 font-bold">Ошибка:</span><br>${escapeHtml(err.message || String(err))}`;
+      } finally {
+        const box = document.getElementById("aiMessages");
+        box.scrollTop = box.scrollHeight;
+        sendBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    function setupStaffAiWidget() {
+      const fab = document.getElementById("aiFab");
+      const panel = document.getElementById("aiPanel");
+      const closeBtn = document.getElementById("aiClose");
+      const clearBtn = document.getElementById("aiClear");
+      const form = document.getElementById("aiForm");
+      const input = document.getElementById("aiInput");
+
+      fab.onclick = () => {
+        panel.classList.toggle("hidden");
+        if (!panel.classList.contains("hidden")) input.focus();
+      };
+      closeBtn.onclick = () => panel.classList.add("hidden");
+      clearBtn.onclick = () => {
+        aiHistory = [];
+        document.getElementById("aiMessages").innerHTML = `<div class="ai-msg ai-msg-bot">Чат аналитика очищен. Задайте вопрос по выручке, складу или очереди заказов!</div>`;
+      };
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const text = input.value;
+        input.value = "";
+        await askStaffAI(text);
+      };
+      document.querySelectorAll(".ai-quick").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const prompt = btn.getAttribute("data-prompt");
+          if (prompt && !document.getElementById("aiSendBtn").disabled) askStaffAI(prompt);
+        });
+      });
+    }
+
+    render();
+    setupStaffAiWidget();
+    syncFromSupabase();
+  </script>
+</body>
+</html>

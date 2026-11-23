@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ВОСТОК ХАУС — Ресторан восточной кухни • Доставка и заказ в зале</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ИИ АССИСТЕНТ ВИДЖЕТ (стиль из вашего проекта Ертіс AI, адаптированный под ВОСТОК ХАУС) */
+    .ai-fab {
+      position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 45;
+      display: inline-flex; align-items: center; gap: .6rem;
+      padding: .85rem 1.25rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.35);
+      background: linear-gradient(135deg, #f97316, #ea580c); color: #fff;
+      font-weight: 800; font-size: .88rem; cursor: pointer;
+      box-shadow: 0 14px 35px -10px rgba(234, 88, 12, .85);
+      transition: transform .15s, filter .15s;
+    }
+    .ai-fab:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .ai-panel {
+      position: fixed; right: 1.25rem; bottom: 5.25rem; z-index: 45;
+      width: min(410px, calc(100vw - 2rem)); height: min(560px, calc(100vh - 7.5rem));
+      display: flex; flex-direction: column; border-radius: 1.5rem; overflow: hidden;
+      background: rgba(255, 255, 255, .97); border: 1px solid #fed7aa;
+      -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%);
+      box-shadow: 0 28px 70px -20px rgba(28, 25, 23, .45);
+    }
+    .ai-panel.hidden { display: none; }
+    .ai-msg {
+      max-width: 88%; padding: .7rem .95rem; border-radius: 1rem;
+      font-size: .83rem; line-height: 1.45; word-wrap: break-word;
+    }
+    .ai-msg-user {
+      align-self: flex-end; color: #fff;
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      border-bottom-right-radius: .3rem;
+    }
+    .ai-msg-bot {
+      align-self: flex-start; color: #1c1917;
+      background: #f5f5f4; border: 1px solid #e7e5e4;
+      border-bottom-left-radius: .3rem;
+    }
+    .ai-chip {
+      font-size: .73rem; font-weight: 600; padding: .35rem .75rem; border-radius: 999px;
+      background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c;
+      cursor: pointer; white-space: nowrap; transition: all .15s;
+    }
+    .ai-chip:hover { background: #ffedd5; border-color: #f97316; }
+    .ai-dots span {
+      display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+      background: #f97316; margin-right: 4px;
+      animation: aiBounce 1.2s infinite ease-in-out;
+    }
+    .ai-dots span:nth-child(2) { animation-delay: .18s; }
+    .ai-dots span:nth-child(3) { animation-delay: .36s; }
+    @keyframes aiBounce { 0%, 80%, 100% { transform: scale(.6); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+  <div id="app"></div>
+
+  <!-- ИИ АССИСТЕНТ ВИДЖЕТ (Восток AI) -->
+  <button id="aiFab" class="ai-fab" type="button" aria-label="Открыть Восток AI">
+    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"/>
+      <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/>
+    </svg>
+    <span>Восток AI</span>
+  </button>
+
+  <section id="aiPanel" class="ai-panel hidden" aria-label="Восток AI Ассистент">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-orange-100 bg-gradient-to-r from-stone-900 to-stone-800 text-white">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-orange-500 grid place-items-center text-white font-black text-xs shadow">AI</div>
+        <div>
+          <div class="font-extrabold text-sm leading-tight">Восток AI • Гид по меню</div>
+          <div class="text-[11px] text-orange-200">Данные из базы Supabase в реальном времени</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button id="aiClear" type="button" class="px-2.5 py-1 rounded-lg bg-stone-700 hover:bg-stone-600 text-[11px] font-semibold text-stone-200">Очистить</button>
+        <button id="aiClose" type="button" class="w-7 h-7 rounded-lg bg-stone-700 hover:bg-stone-600 text-xs font-bold">✕</button>
+      </div>
+    </div>
+
+    <div id="aiMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+      <div class="ai-msg ai-msg-bot">
+        Ассалаумағалейкум! Я <b>Восток AI</b> — умный помощник ресторана <b>«ВОСТОК ХАУС»</b>.<br><br>
+        Я подключён к базе данных ресторана: знаю все блюда, актуальные цены в <b>тенге (₸)</b>, стоп-лист, промокоды и статус вашего заказа. Спрашивайте!
+      </div>
+    </div>
+
+    <div class="px-3 py-2 border-t border-stone-200 flex gap-1.5 overflow-x-auto no-scrollbar bg-stone-50">
+      <button type="button" class="ai-chip ai-quick" data-prompt="Какие хиты меню сейчас есть в наличии в базе и сколько они стоят в тенге?">🔥 Хиты и цены (₸)</button>
+      <button type="button" class="ai-chip ai-quick" data-prompt="Собери вкусный восточный сет на компанию из плова, шашлыка, самсы и чая с ценами из базы.">🍛 Собрать сет</button>
+      <button type="button" class="ai-chip ai-quick" data-prompt="Какие промокоды и скидки действуют сейчас?">🎁 Промокоды</button>
+      <button type="button" class="ai-chip ai-quick" data-prompt="Какой статус моего заказа и как работает заказ в зале?">📦 Мой заказ</button>
+    </div>
+
+    <form id="aiForm" class="p-3 border-t border-stone-200 flex items-center gap-2 bg-white">
+      <input id="aiInput" type="text" class="flex-1 px-3.5 py-2 rounded-xl border border-stone-200 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Спросите про блюда, цены в ₸, промокоды..." autocomplete="off" required />
+      <button id="aiSendBtn" type="submit" class="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shrink-0">Отправить</button>
+    </form>
+  </section>
+
+  <script src="images.js"></script>
+  <script src="shared-data.js"></script>
+  <script>
+    const IMAGES = window.VOSTOK_IMAGES || {};
+    const CATEGORIES = window.VOSTOK_CATEGORIES;
+    const ADDONS = window.VOSTOK_ADDONS;
+    const BASE_OPTIONS = window.VOSTOK_BASE_OPTIONS;
+    const PROMOS = window.VOSTOK_PROMOS;
+    const STATUS_META = window.VOSTOK_STATUS_META;
+    const fmt = window.fmtKZT;
+
+    const initialCfg = window.loadVostokConfig();
+    const initialDb = window.loadSharedDb();
+
+    let savedCustomer = null;
+    try {
+      const rawUser = localStorage.getItem("vostok_client_user_v2");
+      if (rawUser) savedCustomer = JSON.parse(rawUser);
+    } catch (_) {}
+
+    const state = {
+      user: savedCustomer, // Только клиент (role: 'customer')
+      authOpen: false,
+      authMode: "login",   // 'login' | 'register'
+      myOrdersOpen: false,
+      deliveryType: "delivery", // 'delivery' | 'dine_in' (В зале — свободная посадка без брони)
+      address: "ул. Абая, 24",
+      activeCat: "all",
+      filterTag: "all",
+      search: "",
+      modalProd: null,
+      selSizeIdx: 0,
+      selBase: BASE_OPTIONS[0],
+      selAddons: [],
+      cartOpen: false,
+      cart: [],
+      promoCode: "",
+      appliedPromo: null,
+      promoError: "",
+      trackedOrderId: null,
+      toast: "",
+      // Платёжный шлюз с двумя заглушками: 'success' (Оплата прошла) и 'failed' (Оплата не прошла)
+      paymentModalOpen: false,
+      paymentScenario: "success", // 'success' | 'failed'
+      paymentPhase: "form",       // 'form' | 'processing' | 'approved' | 'declined'
+      paymentMethod: "card",
+      cardNumber: "4400 4301 8899 1111",
+      cardExpiry: "12/28",
+      cardCvv: "777",
+      cardHolder: "TIMUR ALIMOV",
+      lastPaymentResult: null,
+      pendingCheckout: null,
+      // Подключение Supabase
+      sbUrl: initialCfg.url,
+      sbKey: initialCfg.key,
+      aiFn: initialCfg.aiFn,
+      products: initialDb.products,
+      orders: initialDb.orders,
+      paymentLogs: initialDb.paymentLogs
+    };
+
+    let sbClient = null;
+    let sbChannel = null;
+    let aiHistory = [];
+
+    function getSbClient() {
+      if (!state.sbUrl || !state.sbKey || !window.supabase) return null;
+      if (sbClient) return sbClient;
+      try {
+        sbClient = window.supabase.createClient(state.sbUrl, state.sbKey);
+        return sbClient;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function persistLocal() {
+      window.saveSharedDb({
+        products: state.products,
+        orders: state.orders,
+        paymentLogs: state.paymentLogs
+      });
+      try {
+        if (state.user) localStorage.setItem("vostok_client_user_v2", JSON.stringify(state.user));
+        else localStorage.removeItem("vostok_client_user_v2");
+      } catch (_) {}
+    }
+
+    // Синхронизация с внешними изменениями (например, когда персонал на staff.html добавил блюдо или сменил статус заказа)
+    window.addEventListener("storage", (e) => {
+      if (e.key === "vostok_house_shared_db_v2") {
+        const fresh = window.loadSharedDb();
+        state.products = fresh.products;
+        state.orders = fresh.orders;
+        state.paymentLogs = fresh.paymentLogs;
+        render();
+      }
+    });
+
+    async function syncFromSupabase() {
+      const sb = getSbClient();
+      if (!sb) return;
+      try {
+        const [prodRes, ordRes] = await Promise.all([
+          sb.from("products").select("*").order("created_at", { ascending: true }),
+          sb.from("orders").select("*").order("created_at", { ascending: false }).limit(40)
+        ]);
+
+        if (prodRes.data && prodRes.data.length > 0) {
+          const cloudProds = prodRes.data.map((p, idx) => ({
+            id: p.id,
+            category_slug: p.category_slug || "plov",
+            name: p.name,
+            description: p.description || "",
+            base_price: Number(p.base_price) || 2500,
+            weight: Number(p.weight_grams || p.weight || 350),
+            calories: Number(p.calories || 550),
+            image: p.image_url || p.image || window.VOSTOK_SEED_PRODUCTS[idx % window.VOSTOK_SEED_PRODUCTS.length].image,
+            is_available: p.is_available !== false,
+            is_hit: Boolean(p.is_hit),
+            is_spicy: Boolean(p.is_spicy),
+            is_veg: Boolean(p.is_veg),
+            sizes: Array.isArray(p.sizes) && p.sizes.length ? p.sizes.map((s) => ({
+              label: s.label || "Стандарт",
+              mult: Number(s.mult || s.multiplier || 1),
+              g: Number(s.g || s.grams || p.weight_grams || 350)
+            })) : [{ label: "Стандарт", mult: 1, g: Number(p.weight_grams || 350) }]
+          }));
+          // Объединяем облачные блюда с богатым стартовым каталогом
+          const cloudIds = new Set(cloudProds.map((x) => x.id));
+          const merged = [
+            ...cloudProds,
+            ...state.products.filter((localP) => !cloudIds.has(localP.id))
+          ];
+          state.products = merged;
+        }
+
+        if (ordRes.data && ordRes.data.length > 0) {
+          state.orders = ordRes.data.map((o) => ({
+            id: String(o.id),
+            number: Number(o.order_number || 101),
+            customer: o.customer_name || "Гость",
+            phone: o.customer_phone || "",
+            type: o.delivery_type === "pickup" ? "dine_in" : (o.delivery_type || "delivery"),
+            address: o.address || "В зале (свободная посадка)",
+            comment: o.comment || "",
+            paymentMethod: o.payment_method || "card",
+            paymentStatus: o.payment_status || "paid",
+            transactionId: o.transaction_id || "",
+            status: o.status || "new",
+            total: Number(o.total_amount || 0),
+            createdAt: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
+            items: Array.isArray(o.items) ? o.items : []
+          }));
+        }
+
+        persistLocal();
+        render();
+
+        if (!sbChannel) {
+          sbChannel = sb
+            .channel("vostok-client-live")
+            .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => syncFromSupabase())
+            .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => syncFromSupabase())
+            .subscribe();
+        }
+      } catch (err) {
+        console.warn("Supabase client sync fallback:", err);
+      }
+    }
+
+    function notify(msg) {
+      state.toast = msg;
+      render();
+      setTimeout(() => {
+        if (state.toast === msg) {
+          state.toast = "";
+          render();
+        }
+      }, 3200);
+    }
+
+    function cartTotals() {
+      const subtotal = state.cart.reduce((s, i) => s + i.price * i.qty, 0);
+      const count = state.cart.reduce((s, i) => s + i.qty, 0);
+      const discount = state.appliedPromo ? Math.round((subtotal * state.appliedPromo.discount) / 100) : 0;
+      return { subtotal, count, discount, total: Math.max(0, subtotal - discount) };
+    }
+
+    function modalPrice() {
+      if (!state.modalProd) return 0;
+      const sz = state.modalProd.sizes[state.selSizeIdx] || state.modalProd.sizes[0];
+      const base = Math.round(state.modalProd.base_price * sz.mult);
+      const adds = state.selAddons.reduce((s, id) => {
+        const a = ADDONS.find((x) => x.id === id);
+        return s + (a ? a.price : 0);
+      }, 0);
+      return base + adds;
+    }
+
+    function render() {
+      const root = document.getElementById("app");
+      root.innerHTML = renderStoreView() + renderModals() + renderToast();
+      bindStoreEvents();
+    }
+
+    function renderToast() {
+      if (!state.toast) return "";
+      return `<div class="fixed bottom-20 right-5 z-50 bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold border border-stone-700">${state.toast}</div>`;
+    }
+
+    function renderStoreView() {
+      const { count, total } = cartTotals();
+      const filtered = state.products.filter((p) => {
+        if (state.activeCat !== "all" && p.category_slug !== state.activeCat) return false;
+        if (state.filterTag === "hit" && !p.is_hit) return false;
+        if (state.filterTag === "spicy" && !p.is_spicy) return false;
+        if (state.filterTag === "veg" && !p.is_veg) return false;
+        if (state.search.trim()) {
+          const q = state.search.toLowerCase();
+          if (!p.name.toLowerCase().includes(q) && !p.description.toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+
+      const tracked = state.orders.find((o) => o.id === state.trackedOrderId);
+      const stepLabels = tracked?.type === "dine_in"
+        ? ["Принят", "На кухне", "Готов к выдаче", "В зале", "Выдан гостю"]
+        : ["Принят", "На кухне", "Упакован", "Курьер в пути", "Доставлен"];
+
+      return `
+        <header class="bg-white border-b border-stone-200/80 sticky top-0 z-30">
+          <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center font-black text-xl shadow-sm">В</div>
+                <div>
+                  <div class="font-black text-lg leading-none">ВОСТОК ХАУС</div>
+                  <div class="text-[11px] text-stone-500 font-medium">Тандыр • Казан • Мангал • 100% Халяль</div>
+                </div>
+              </div>
+
+              ${state.deliveryType === "delivery" ? `
+                <div class="hidden md:flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-2xl text-xs">
+                  <span class="text-orange-600 font-bold">📍 Доставка:</span>
+                  <input id="addr-input" type="text" value="${state.address}" placeholder="Укажите улицу и дом" class="bg-transparent font-semibold text-stone-800 focus:outline-none w-40" />
+                  <span class="text-stone-400">|</span>
+                  <span class="font-semibold text-stone-700">35–45 мин</span>
+                </div>
+              ` : `
+                <div class="hidden md:flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-2xl text-xs text-amber-900">
+                  <span class="font-bold">🍽️ В зале:</span>
+                  <span class="font-semibold">Свободная посадка (найдите любое удобное место сами)</span>
+                </div>
+              `}
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="open-orders-btn" class="px-3.5 py-2 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold">
+                Мои заказы (${state.orders.length})
+              </button>
+
+              ${state.user ? `
+                <div class="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-2xl text-xs">
+                  <span class="font-bold text-stone-900">👤 ${state.user.name}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-800">Клиент</span>
+                  <button id="logout-btn" class="text-stone-500 hover:text-rose-600 font-semibold ml-1">Выйти</button>
+                </div>
+              ` : `
+                <button id="open-auth-btn" class="px-4 py-2 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold">
+                  Войти / Регистрация клиента
+                </button>
+              `}
+
+              <button id="open-cart-btn" class="px-4 py-2 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-sm">
+                Корзина ${count > 0 ? `• ${count} (${fmt(total)})` : ""}
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-stone-100 bg-white">
+            <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
+              <div class="flex items-center gap-1.5">
+                ${CATEGORIES.map((c) => `
+                  <button data-cat="${c.slug}" class="cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition ${state.activeCat === c.slug ? "bg-orange-500 text-white" : "bg-stone-100 text-stone-700 hover:bg-stone-200"}">
+                    ${c.name}
+                  </button>
+                `).join("")}
+              </div>
+              <input id="search-input" type="text" value="${state.search}" placeholder="Поиск блюд в меню..." class="hidden sm:block px-3.5 py-1.5 rounded-full bg-stone-100 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 w-48" />
+            </div>
+          </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-6 space-y-8 pb-24">
+          ${tracked ? `
+            <section class="bg-white rounded-3xl p-6 shadow-sm border border-orange-200">
+              <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <div>
+                  <div class="text-xs font-bold uppercase text-orange-600">
+                    Отслеживание заказа в реальном времени • ${tracked.type === "dine_in" ? "В зале (свободная посадка)" : `Доставка (${tracked.address})`}
+                  </div>
+                  <h2 class="text-xl font-extrabold">Заказ #${tracked.number} • ${STATUS_META[tracked.status]?.label || tracked.status}</h2>
+                </div>
+                <button id="hide-tracker-btn" class="text-xs font-semibold text-stone-400 hover:text-stone-700">Скрыть</button>
+              </div>
+              <div class="grid grid-cols-5 gap-2">
+                ${[1, 2, 3, 4, 5].map((step) => {
+                  const done = (STATUS_META[tracked.status]?.step || 1) >= step;
+                  return `
+                    <div>
+                      <div class="h-2 rounded-full ${done ? "bg-orange-500" : "bg-stone-200"}"></div>
+                      <div class="text-[11px] font-bold text-center mt-1.5 ${done ? "text-stone-900" : "text-stone-400"}">${stepLabels[step - 1]}</div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </section>
+          ` : ""}
+
+          <section class="relative rounded-3xl overflow-hidden bg-stone-900 text-white shadow-lg">
+            <img src="${IMAGES.hero || "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?w=1200"}" alt="Узбекский плов из казана" class="w-full h-64 sm:h-80 object-cover opacity-55" />
+            <div class="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/60 to-transparent flex flex-col justify-center p-6 sm:p-10 max-w-2xl">
+              <span class="px-3 py-1 rounded-full bg-orange-500 text-white text-xs font-bold w-fit mb-3">Доставка за 35 минут или заказ в зале • 100% Халяль</span>
+              <h1 class="text-2xl sm:text-4xl font-black leading-tight">Настоящий плов из казана, шашлык на углях и горячая самса из тандыра</h1>
+              <p class="text-sm text-stone-200 mt-2">
+                Промокоды: <b class="text-orange-300">VOSTOK10</b> (-10% от 3 000 ₸), <b class="text-orange-300">NAURYZ15</b> (-15% от 4 500 ₸) и <b class="text-orange-300">PLOV20</b> (-20% от 6 000 ₸)
+              </p>
+              <div class="flex flex-wrap gap-3 mt-5">
+                <button id="hero-plov-btn" class="px-5 py-2.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow">
+                  Выбрать горячий плов
+                </button>
+                <button id="hero-ai-btn" class="px-5 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur text-white text-sm font-bold">
+                  ✨ Спросить Восток AI
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Плашка про формат работы: Доставка или В зале (без брони столов) -->
+          <section class="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold shrink-0">
+                ${state.deliveryType === "delivery" ? "🚚" : "🍽️"}
+              </div>
+              <div>
+                <div class="font-extrabold text-sm text-stone-900">
+                  ${state.deliveryType === "delivery"
+                    ? "Режим заказа: Быстрая доставка на дом или в офис"
+                    : "Режим заказа: В зале ресторана (свободная посадка без бронирования столов)"}
+                </div>
+                <div class="text-xs text-stone-500 mt-0.5">
+                  ${state.deliveryType === "delivery"
+                    ? `Доставим горячим по адресу: ${state.address || "укажите адрес"}`
+                    : "В нашем ресторане нет брони столов — оформите заказ на сайте, займите любое свободное место в зале сами и получите блюда по номеру заказа!"}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex bg-stone-200/80 p-1 rounded-2xl text-xs font-bold">
+              <button data-del="delivery" class="del-btn px-4 py-2 rounded-xl transition ${state.deliveryType === "delivery" ? "bg-white shadow text-stone-900" : "text-stone-600 hover:text-stone-900"}">
+                🚚 Доставка
+              </button>
+              <button data-del="dine_in" class="del-btn px-4 py-2 rounded-xl transition ${state.deliveryType === "dine_in" ? "bg-white shadow text-stone-900" : "text-stone-600 hover:text-stone-900"}">
+                🍽️ В зале (место выбираете сами)
+              </button>
+            </div>
+          </section>
+
+          <section class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-2">
+              ${[
+                { id: "all", label: "Все блюда (" + state.products.length + ")" },
+                { id: "hit", label: "🔥 Хиты" },
+                { id: "spicy", label: "🌶️ Острое" },
+                { id: "veg", label: "🌿 Без мяса" }
+              ].map((f) => `
+                <button data-tag="${f.id}" class="tag-btn px-3.5 py-1.5 rounded-full text-xs font-bold border transition ${state.filterTag === f.id ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-700 border-stone-200 hover:border-stone-300"}">
+                  ${f.label}
+                </button>
+              `).join("")}
+            </div>
+            <div class="text-xs font-semibold text-stone-500">
+              Найдено позиций: <b class="text-stone-900">${filtered.length}</b> • Валюта: <b class="text-orange-600">Тенге (₸)</b>
+            </div>
+          </section>
+
+          <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${filtered.map((p) => `
+              <article data-prod="${p.id}" class="prod-card bg-white rounded-3xl p-4 shadow-sm border border-stone-100 flex flex-col justify-between transition ${p.is_available ? "hover:shadow-md cursor-pointer" : "opacity-60"}">
+                <div>
+                  <div class="relative aspect-square rounded-2xl overflow-hidden bg-stone-50 mb-3">
+                    <img src="${p.image}" alt="${p.name}" class="w-full h-full object-cover" />
+                    <div class="absolute top-2.5 left-2.5 flex flex-wrap gap-1">
+                      ${p.is_hit ? `<span class="px-2.5 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow">ХИТ</span>` : ""}
+                      ${p.is_spicy ? `<span class="px-2.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-bold shadow">ОСТРОЕ</span>` : ""}
+                      ${p.is_veg ? `<span class="px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow">ВЕГ</span>` : ""}
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                      ${p.weight} г • ${p.calories} ккал
+                    </div>
+                    ${!p.is_available ? `<div class="absolute inset-0 bg-white/80 flex items-center justify-center"><span class="px-3 py-1 rounded-full bg-stone-900 text-white text-xs font-bold">На стопе</span></div>` : ""}
+                  </div>
+                  <h3 class="font-extrabold text-base text-stone-900 leading-snug">${p.name}</h3>
+                  <p class="text-xs text-stone-500 mt-1 line-clamp-2">${p.description}</p>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-2 border-t border-stone-100">
+                  <span class="font-extrabold text-base text-stone-900">от ${fmt(p.base_price)}</span>
+                  <button class="px-4 py-2 rounded-2xl ${p.is_available ? "bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white" : "bg-stone-100 text-stone-400"} font-bold text-xs transition">
+                    ${p.is_available ? "Выбрать" : "Закончилось"}
+                  </button>
+                </div>
+              </article>
+            `).join("")}
+          </section>
+        </main>
+
+        <footer class="bg-white border-t border-stone-200/80 py-6 text-xs text-stone-500">
+          <div class="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-3">
+            <div>© 2026 <b>ВОСТОК ХАУС</b> — Ресторан восточной кухни. Все цены указаны в тенге (₸).</div>
+            <div class="flex items-center gap-4">
+              <span>Доставка и заказ в зале (свободная посадка)</span>
+            </div>
+          </div>
+        </footer>
+      `;
+    }
+
+    function renderModals() {
+      let html = "";
+
+      // 1. Конструктор блюда
+      if (state.modalProd) {
+        const p = state.modalProd;
+        const sz = p.sizes[state.selSizeIdx] || p.sizes[0];
+        const total = modalPrice();
+        html += `
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 relative my-8">
+              <button id="close-prod-modal" class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 font-bold">✕</button>
+              <div class="bg-stone-50 p-6 flex flex-col items-center justify-center">
+                <img src="${p.image}" alt="${p.name}" class="w-64 h-64 object-cover rounded-2xl shadow-sm" />
+                <div class="mt-3 text-xs font-semibold text-stone-500">${sz.g} г • ${p.calories} ккал</div>
+              </div>
+              <div class="p-6 flex flex-col justify-between max-h-[85vh] overflow-y-auto">
+                <div class="space-y-4">
+                  <div>
+                    <h2 class="text-2xl font-extrabold leading-tight">${p.name}</h2>
+                    <p class="text-xs text-stone-500 mt-1">${p.description}</p>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-stone-600 mb-1.5">Размер порции</div>
+                    <div class="flex bg-stone-100 p-1 rounded-2xl gap-1">
+                      ${p.sizes.map((s, idx) => `
+                        <button data-size="${idx}" class="size-btn flex-1 py-2 px-2 rounded-xl text-xs font-bold ${state.selSizeIdx === idx ? "bg-white shadow text-stone-900" : "text-stone-600"}">${s.label}</button>
+                      `).join("")}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-stone-600 mb-1.5">Подача с хлебом</div>
+                    <div class="flex flex-wrap gap-1.5">
+                      ${BASE_OPTIONS.map((b) => `
+                        <button data-base="${b}" class="base-btn px-3 py-1.5 rounded-xl text-xs font-semibold border ${state.selBase === b ? "border-orange-500 bg-orange-50 text-orange-700" : "border-stone-200 text-stone-600"}">${b}</button>
+                      `).join("")}
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-bold text-stone-600 mb-1.5">Добавить по вкусу</div>
+                    <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      ${ADDONS.map((a) => {
+                        const active = state.selAddons.includes(a.id);
+                        return `
+                          <button data-addon="${a.id}" class="addon-btn w-full flex justify-between items-center px-3 py-2 rounded-xl border text-xs ${active ? "border-orange-500 bg-orange-50 font-bold" : "border-stone-200"}">
+                            <span>${active ? "✓ " : ""}${a.name}</span>
+                            <span class="font-bold">+${fmt(a.price)}</span>
+                          </button>
+                        `;
+                      }).join("")}
+                    </div>
+                  </div>
+                </div>
+                <button id="add-to-cart-btn" class="mt-5 w-full py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm shadow">
+                  Добавить в корзину за ${fmt(total)}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 2. Корзина
+      if (state.cartOpen) {
+        const { count, subtotal, discount, total } = cartTotals();
+        html += `
+          <div class="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
+            <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+              <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                <h2 class="text-xl font-extrabold">Корзина (${count})</h2>
+                <button id="close-cart-btn" class="w-9 h-9 rounded-full hover:bg-stone-100 font-bold">✕</button>
+              </div>
+              <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                ${state.cart.length === 0 ? `<div class="text-center py-14 text-stone-400 text-sm">Корзина пуста. Выберите блюда из меню!</div>` : `
+                  ${state.cart.map((item, idx) => `
+                    <div class="flex gap-3 pb-3 border-b border-stone-100">
+                      <img src="${item.image}" class="w-16 h-16 rounded-xl object-cover bg-stone-50" />
+                      <div class="flex-1">
+                        <div class="font-bold text-sm">${item.name}</div>
+                        <div class="text-[11px] text-stone-500">${item.size}, ${item.base}</div>
+                        ${item.addons.length ? `<div class="text-[11px] text-orange-600">+ ${item.addons.join(", ")}</div>` : ""}
+                        <div class="flex justify-between items-center mt-2">
+                          <span class="font-extrabold text-sm">${fmt(item.price * item.qty)}</span>
+                          <div class="flex items-center gap-2 bg-stone-100 rounded-xl px-2 py-1 text-xs font-bold">
+                            <button data-cdec="${idx}" class="cdec-btn px-1.5">-</button>
+                            <span>${item.qty}</span>
+                            <button data-cinc="${idx}" class="cinc-btn px-1.5">+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  `).join("")}
+
+                  <!-- Выбор Доставка или В зале прямо в корзине -->
+                  <div class="bg-stone-100 p-1 rounded-2xl grid grid-cols-2 gap-1 text-xs font-bold">
+                    <button type="button" data-del="delivery" class="del-btn py-2 rounded-xl ${state.deliveryType === "delivery" ? "bg-white shadow text-stone-900" : "text-stone-600"}">🚚 Доставка</button>
+                    <button type="button" data-del="dine_in" class="del-btn py-2 rounded-xl ${state.deliveryType === "dine_in" ? "bg-white shadow text-stone-900" : "text-stone-600"}">🍽️ В зале</button>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <input id="promo-input" type="text" value="${state.promoCode}" placeholder="Промокод (VOSTOK10, PLOV20)" class="flex-1 px-3 py-2 rounded-xl border border-stone-200 text-xs uppercase" />
+                    <button id="apply-promo-btn" type="button" class="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold">Применить</button>
+                  </div>
+                  ${state.promoError ? `<div class="text-xs text-rose-600 font-semibold">${state.promoError}</div>` : ""}
+                  ${state.appliedPromo ? `<div class="text-xs text-emerald-700 font-semibold">Промокод ${state.appliedPromo.code}: скидка ${state.appliedPromo.discount}% (-${fmt(discount)})</div>` : ""}
+
+                  <form id="checkout-form" class="space-y-2.5 pt-2 border-t border-stone-100">
+                    <div class="text-xs font-bold text-stone-700">Контактные данные</div>
+                    <input id="chk-name" type="text" value="${state.user?.name || ""}" placeholder="Ваше имя" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" required />
+                    <input id="chk-phone" type="tel" value="${state.user?.phone || "+7 (701) 000-00-00"}" placeholder="Телефон (+7 701 ...)" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" required />
+                    ${state.deliveryType === "delivery" ? `
+                      <input id="chk-address" type="text" value="${state.address}" placeholder="Адрес доставки (улица, дом, кв.)" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" required />
+                    ` : `
+                      <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-medium">
+                        🍽️ <b>Заказ в зале (свободная посадка):</b> бронь стола не требуется. Выберите любое удобное место в зале сами — готовность появится на трекере.
+                      </div>
+                    `}
+                    <input id="chk-comment" type="text" placeholder="Комментарий к заказу (необязательно)" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs" />
+                  </form>
+
+                  <div class="pt-2 border-t border-stone-100 text-xs space-y-1">
+                    <div class="flex justify-between text-stone-500"><span>Сумма блюд:</span><span>${fmt(subtotal)}</span></div>
+                    ${discount > 0 ? `<div class="flex justify-between text-emerald-600 font-bold"><span>Скидка:</span><span>-${fmt(discount)}</span></div>` : ""}
+                    <div class="flex justify-between text-base font-extrabold text-stone-900 pt-1"><span>Итого к оплате:</span><span>${fmt(total)}</span></div>
+                  </div>
+                `}
+              </div>
+              ${state.cart.length > 0 ? `
+                <div class="p-5 border-t border-stone-100 bg-stone-50">
+                  <button type="submit" form="checkout-form" class="w-full py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm shadow">
+                    Перейти к оплате • ${fmt(total)}
+                  </button>
+                </div>
+              ` : ""}
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. Система платежа с двумя заглушками: «Оплата прошла» и «Оплата не прошла»
+      if (state.paymentModalOpen) {
+        const { total } = cartTotals();
+        html += `
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200 my-8">
+              <div class="bg-stone-900 text-white px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center font-black text-base">₸</div>
+                  <div>
+                    <div class="font-extrabold text-sm">VOSTOK PAY • Эквайринг</div>
+                    <div class="text-[11px] text-stone-400">Система оплаты заказа</div>
+                  </div>
+                </div>
+                ${state.paymentPhase !== "processing" ? `
+                  <button id="close-pay-modal" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 text-xs font-bold">✕</button>
+                ` : ""}
+              </div>
+
+              <div class="px-5 py-3 bg-stone-50 border-b border-stone-100 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-stone-800">Оплата заказа «ВОСТОК ХАУС»</div>
+                  <div class="text-[11px] text-stone-500">${state.deliveryType === "delivery" ? `Доставка: ${state.address}` : "В зале (свободная посадка)"}</div>
+                </div>
+                <div class="text-lg font-black text-orange-600">${fmt(total)}</div>
+              </div>
+
+              <div class="p-5">
+                ${state.paymentPhase === "form" ? `
+                  <div class="space-y-4">
+                    <div>
+                      <div class="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">
+                        Выберите сценарий платежа (заглушка):
+                      </div>
+                      <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" data-payscen="success" class="payscen-btn p-3 rounded-2xl border-2 text-left transition ${state.paymentScenario === "success" ? "border-emerald-500 bg-emerald-50" : "border-stone-200 hover:border-stone-300"}">
+                          <div class="flex items-center gap-1.5 font-extrabold text-xs text-emerald-800">
+                            <span>✅</span><span>Оплата прошла</span>
+                          </div>
+                          <div class="text-[11px] text-emerald-700 mt-1">Банк одобряет платёж, заказ уходит в Supabase и на кухню</div>
+                        </button>
+
+                        <button type="button" data-payscen="failed" class="payscen-btn p-3 rounded-2xl border-2 text-left transition ${state.paymentScenario === "failed" ? "border-rose-500 bg-rose-50" : "border-stone-200 hover:border-stone-300"}">
+                          <div class="flex items-center gap-1.5 font-extrabold text-xs text-rose-800">
+                            <span>❌</span><span>Оплата не прошла</span>
+                          </div>
+                          <div class="text-[11px] text-rose-700 mt-1">Отказ банка (ошибка списания / не хватает средств)</div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="space-y-2.5 pt-1">
+                      <div>
+                        <label class="block text-[11px] font-bold text-stone-600 mb-1">Номер банковской карты (Kaspi / Halyk / Visa)</label>
+                        <input id="pay-card-num" type="text" value="${state.cardNumber}" maxlength="19" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 font-mono text-sm" />
+                      </div>
+                      <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                          <label class="block text-[11px] font-bold text-stone-600 mb-1">Срок (ММ/ГГ)</label>
+                          <input id="pay-card-exp" type="text" value="${state.cardExpiry}" maxlength="5" class="w-full px-3.5 py-2 rounded-xl border border-stone-200 font-mono text-xs" />
+                        </div>
+                        <div>
+                          <label class="block text-[11px] font-bold text-stone-600 mb-1">CVV</label>
+                          <input id="pay-card-cvv" type="password" value="${state.cardCvv}" maxlength="3" class="w-full px-3.5 py-2 rounded-xl border border-stone-200 font-mono text-xs" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button id="run-payment-btn" type="button" class="w-full py-3.5 rounded-2xl font-extrabold text-sm text-white shadow transition ${state.paymentScenario === "success" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"}">
+                      ${state.paymentScenario === "success" ? `Оплатить ${fmt(total)} (Сценарий: Оплата прошла)` : `Проверить отказ ${fmt(total)} (Сценарий: Оплата не прошла)`}
+                    </button>
+                  </div>
+                ` : ""}
+
+                ${state.paymentPhase === "processing" ? `
+                  <div class="py-10 text-center space-y-3">
+                    <div class="w-12 h-12 rounded-full border-4 border-stone-200 border-t-orange-500 animate-spin mx-auto"></div>
+                    <div class="font-extrabold text-base text-stone-900">Связываемся с банком...</div>
+                    <div class="text-xs text-stone-500">Обработка транзакции на сумму ${fmt(total)}</div>
+                  </div>
+                ` : ""}
+
+                ${state.paymentPhase === "approved" && state.lastPaymentResult ? `
+                  <div class="py-6 text-center space-y-4">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl mx-auto">✓</div>
+                    <div>
+                      <h3 class="text-xl font-black text-emerald-700">Оплата прошла успешно!</h3>
+                      <p class="text-xs text-stone-500 mt-1">${state.lastPaymentResult.message}</p>
+                    </div>
+                    <div class="bg-stone-50 rounded-2xl p-3.5 border border-stone-200 text-xs text-left space-y-1">
+                      <div class="flex justify-between"><span class="text-stone-500">Заказ:</span><b>#${state.lastPaymentResult.orderNumber}</b></div>
+                      <div class="flex justify-between"><span class="text-stone-500">Сумма:</span><b>${fmt(state.lastPaymentResult.amount)}</b></div>
+                      <div class="flex justify-between"><span class="text-stone-500">Код транзакции:</span><b class="font-mono text-emerald-700">${state.lastPaymentResult.txId}</b></div>
+                    </div>
+                    <button id="finish-pay-btn" type="button" class="w-full py-3 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm">
+                      Перейти к отслеживанию заказа
+                    </button>
+                  </div>
+                ` : ""}
+
+                ${state.paymentPhase === "declined" && state.lastPaymentResult ? `
+                  <div class="py-6 text-center space-y-4">
+                    <div class="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-3xl mx-auto">✕</div>
+                    <div>
+                      <h3 class="text-xl font-black text-rose-700">Оплата не прошла!</h3>
+                      <p class="text-xs font-bold text-stone-500 mt-0.5">Код ответа банка: ${state.lastPaymentResult.code}</p>
+                      <div class="mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 text-left">
+                        ⚠️ ${state.lastPaymentResult.message}
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button id="retry-pay-success-btn" type="button" class="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
+                        Выбрать «Оплата прошла»
+                      </button>
+                      <button id="back-pay-form-btn" type="button" class="flex-1 py-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs">
+                        Назад к форме
+                      </button>
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 4. Регистрация и вход ТОЛЬКО для клиента (без ролей персонала)
+      if (state.authOpen) {
+        html += `
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative my-8">
+              <button id="close-auth-btn" class="absolute top-5 right-5 w-9 h-9 rounded-full hover:bg-stone-100 font-bold">✕</button>
+              <span class="px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-[11px] font-bold">Личный кабинет гостя</span>
+              <h2 class="text-2xl font-extrabold mt-2">${state.authMode === "register" ? "Регистрация клиента" : "Вход для клиента"}</h2>
+              <p class="text-xs text-stone-500 mt-1">Создайте аккаунт гостя для сохранения истории заказов и бонусов в Supabase</p>
+
+              <div class="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl mt-4 text-xs font-bold">
+                <button type="button" data-amode="login" class="amode-btn py-2 rounded-xl ${state.authMode === "login" ? "bg-white shadow text-stone-900" : "text-stone-600"}">Вход</button>
+                <button type="button" data-amode="register" class="amode-btn py-2 rounded-xl ${state.authMode === "register" ? "bg-white shadow text-stone-900" : "text-stone-600"}">Регистрация клиента</button>
+              </div>
+
+              <form id="auth-form" class="space-y-3 mt-4">
+                ${state.authMode === "register" ? `
+                  <input id="auth-name" type="text" placeholder="Ваше имя и фамилия" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+                  <input id="auth-phone" type="tel" placeholder="Телефон (+7 701 000-00-00)" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+                ` : ""}
+                <input id="auth-email" type="email" placeholder="Email клиента" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+                <input id="auth-pass" type="password" placeholder="Пароль (мин. 6 символов)" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm" required />
+                <button type="submit" class="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow">
+                  ${state.authMode === "register" ? "Зарегистрироваться как клиент" : "Войти в аккаунт"}
+                </button>
+              </form>
+
+              <div class="mt-4 pt-4 border-t border-stone-100 flex items-center justify-between text-xs">
+                <span class="text-stone-500">Быстрый тест:</span>
+                <button type="button" id="quick-client-btn" class="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-orange-100 text-stone-800 font-bold">
+                  Войти демо-клиентом в 1 клик
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 5. История заказов клиента
+      if (state.myOrdersOpen) {
+        html += `
+          <div class="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
+            <div class="bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+              <div class="p-5 border-b border-stone-100 flex items-center justify-between">
+                <h2 class="text-xl font-extrabold">Мои заказы (${state.orders.length})</h2>
+                <button id="close-orders-btn" class="w-9 h-9 rounded-full hover:bg-stone-100 font-bold">✕</button>
+              </div>
+              <div class="flex-1 overflow-y-auto p-5 space-y-3">
+                ${state.orders.map((o) => `
+                  <div class="p-4 rounded-2xl border border-stone-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="font-extrabold text-base">Заказ #${o.number}</span>
+                      <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_META[o.status]?.color || "bg-stone-100"}">
+                        ${STATUS_META[o.status]?.label || o.status}
+                      </span>
+                    </div>
+                    <div class="text-xs text-stone-500">
+                      ${o.type === "delivery" ? `🚚 Доставка: ${o.address}` : "🍽️ В зале (свободная посадка)"}
+                    </div>
+                    <div class="text-xs text-stone-700">
+                      ${(o.items || []).map((i) => `${i.name} (${i.size || "Стандарт"}) × ${i.qty}`).join(", ")}
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+                      <span class="font-extrabold text-sm text-orange-600">${fmt(o.total)}</span>
+                      <button data-track="${o.id}" class="track-ord-btn text-xs font-bold text-stone-700 hover:text-orange-600">
+                        Показать на трекере →
+                      </button>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return html;
+    }
+
+    async function executeOrderPayment() {
+      const { total, discount } = cartTotals();
+      state.paymentPhase = "processing";
+      render();
+
+      await new Promise((r) => setTimeout(r, 900));
+
+      const txId = "TX-" + Date.now().toString().slice(-7);
+      const nextNum = state.orders.length ? Math.max(...state.orders.map((o) => Number(o.number) || 100), 103) + 1 : 104;
+      const custName = state.pendingCheckout?.name || state.user?.name || "Гость";
+      const custPhone = state.pendingCheckout?.phone || state.user?.phone || "+7 (701) 000-00-00";
+      const custAddr = state.deliveryType === "delivery" ? (state.pendingCheckout?.address || state.address) : "В зале (свободная посадка)";
+      const custComment = state.pendingCheckout?.comment || "";
+
+      const sb = getSbClient();
+
+      // Сценарий 2: ОПЛАТА НЕ ПРОШЛА
+      if (state.paymentScenario === "failed") {
+        const failLog = {
+          order_number: nextNum,
+          customer_name: custName,
+          amount: total,
+          payment_method: "card",
+          scenario: "failed",
+          bank_code: "51",
+          bank_message: "Банк отклонил операцию: недостаточно средств или лимит интернет-платежей.",
+          transaction_id: txId,
+          created_at: new Date().toISOString()
+        };
+        state.paymentLogs.unshift(failLog);
+        persistLocal();
+        if (sb) {
+          try { await sb.from("payment_logs").insert(failLog); } catch (_) {}
+        }
+        state.lastPaymentResult = {
+          code: "51 (DECLINED)",
+          message: failLog.bank_message,
+          txId
+        };
+        state.paymentPhase = "declined";
+        render();
+        return;
+      }
+
+      // Сценарий 1: ОПЛАТА ПРОШЛА
+      const newOrd = {
+        id: `ord-${Date.now()}`,
+        number: nextNum,
+        customer: custName,
+        phone: custPhone,
+        type: state.deliveryType,
+        address: custAddr,
+        comment: custComment,
+        paymentMethod: "card",
+        paymentStatus: "paid",
+        transactionId: txId,
+        status: "new",
+        total,
+        createdAt: Date.now(),
+        items: state.cart.map((c) => ({
+          id: c.id,
+          name: c.name,
+          size: c.size,
+          base: c.base,
+          addons: c.addons,
+          qty: c.qty,
+          price: c.price,
+          ready: false
+        }))
+      };
+
+      const okLog = {
+        order_number: nextNum,
+        customer_name: custName,
+        amount: total,
+        payment_method: "card",
+        scenario: "success",
+        bank_code: "00",
+        bank_message: "Оплата успешно подтверждена банком.",
+        transaction_id: txId,
+        created_at: new Date().toISOString()
+      };
+
+      state.orders.unshift(newOrd);
+      state.paymentLogs.unshift(okLog);
+      state.trackedOrderId = newOrd.id;
+      state.cart = [];
+      state.appliedPromo = null;
+      state.promoCode = "";
+      persistLocal();
+
+      if (sb) {
+        try {
+          await sb.from("payment_logs").insert(okLog);
+          await sb.from("orders").insert({
+            id: newOrd.id,
+            order_number: newOrd.number,
+            customer_name: newOrd.customer,
+            customer_phone: newOrd.phone,
+            delivery_type: newOrd.type,
+            address: newOrd.address,
+            comment: newOrd.comment,
+            payment_method: "card",
+            payment_status: "paid",
+            transaction_id: txId,
+            status: "new",
+            promo_code: state.appliedPromo?.code || null,
+            discount_amount: discount,
+            total_amount: newOrd.total,
+            items: newOrd.items
+          });
+        } catch (err) {
+          console.warn("Supabase order insert warning:", err);
+        }
+      }
+
+      state.lastPaymentResult = {
+        orderNumber: nextNum,
+        amount: total,
+        txId,
+        message: "Платёж проведён! Заказ сохранён в Supabase и передан на кухню."
+      };
+      state.paymentPhase = "approved";
+      render();
+    }
+
+    function bindStoreEvents() {
+      const addr = document.getElementById("addr-input");
+      if (addr) addr.oninput = (e) => { state.address = e.target.value; };
+      const search = document.getElementById("search-input");
+      if (search) {
+        search.oninput = (e) => {
+          state.search = e.target.value;
+          render();
+          const el = document.getElementById("search-input");
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        };
+      }
+
+      document.querySelectorAll(".cat-btn").forEach((b) => (b.onclick = () => { state.activeCat = b.dataset.cat; render(); }));
+      document.querySelectorAll(".tag-btn").forEach((b) => (b.onclick = () => { state.filterTag = b.dataset.tag; render(); }));
+      document.querySelectorAll(".del-btn").forEach((b) => (b.onclick = () => { state.deliveryType = b.dataset.del; render(); }));
+
+      document.querySelectorAll(".prod-card").forEach((card) => {
+        card.onclick = () => {
+          const p = state.products.find((x) => x.id === card.dataset.prod);
+          if (p && p.is_available) {
+            state.modalProd = p;
+            state.selSizeIdx = 0;
+            state.selBase = BASE_OPTIONS[0];
+            state.selAddons = [];
+            render();
+          }
+        };
+      });
+
+      const heroPlov = document.getElementById("hero-plov-btn");
+      if (heroPlov) heroPlov.onclick = () => { state.activeCat = "plov"; render(); };
+      const heroAi = document.getElementById("hero-ai-btn");
+      if (heroAi) heroAi.onclick = () => {
+        document.getElementById("aiPanel").classList.remove("hidden");
+        document.getElementById("aiInput")?.focus();
+      };
+
+      const openAuth = document.getElementById("open-auth-btn");
+      if (openAuth) openAuth.onclick = () => { state.authOpen = true; render(); };
+      const logoutBtn = document.getElementById("logout-btn");
+      if (logoutBtn) logoutBtn.onclick = async () => {
+        const sb = getSbClient();
+        if (sb) await sb.auth.signOut().catch(() => {});
+        state.user = null;
+        persistLocal();
+        notify("Вы вышли из аккаунта клиента");
+      };
+
+      const openOrders = document.getElementById("open-orders-btn");
+      if (openOrders) openOrders.onclick = () => { state.myOrdersOpen = true; render(); };
+      const closeOrders = document.getElementById("close-orders-btn");
+      if (closeOrders) closeOrders.onclick = () => { state.myOrdersOpen = false; render(); };
+      document.querySelectorAll(".track-ord-btn").forEach((b) => {
+        b.onclick = () => {
+          state.trackedOrderId = b.dataset.track;
+          state.myOrdersOpen = false;
+          render();
+        };
+      });
+
+      const openCart = document.getElementById("open-cart-btn");
+      if (openCart) openCart.onclick = () => { state.cartOpen = true; render(); };
+      const hideTracker = document.getElementById("hide-tracker-btn");
+      if (hideTracker) hideTracker.onclick = () => { state.trackedOrderId = null; render(); };
+
+      // Конструктор блюда
+      const closeProd = document.getElementById("close-prod-modal");
+      if (closeProd) closeProd.onclick = () => { state.modalProd = null; render(); };
+      document.querySelectorAll(".size-btn").forEach((b) => (b.onclick = () => { state.selSizeIdx = Number(b.dataset.size); render(); }));
+      document.querySelectorAll(".base-btn").forEach((b) => (b.onclick = () => { state.selBase = b.dataset.base; render(); }));
+      document.querySelectorAll(".addon-btn").forEach((b) => {
+        b.onclick = () => {
+          const id = b.dataset.addon;
+          state.selAddons = state.selAddons.includes(id) ? state.selAddons.filter((x) => x !== id) : [...state.selAddons, id];
+          render();
+        };
+      });
+      const addCartBtn = document.getElementById("add-to-cart-btn");
+      if (addCartBtn) {
+        addCartBtn.onclick = () => {
+          const p = state.modalProd;
+          const sz = p.sizes[state.selSizeIdx] || p.sizes[0];
+          const addonNames = state.selAddons.map((id) => ADDONS.find((a) => a.id === id)?.name).filter(Boolean);
+          state.cart.push({
+            id: p.id,
+            name: p.name,
+            image: p.image,
+            size: sz.label,
+            base: state.selBase,
+            addons: addonNames,
+            price: modalPrice(),
+            qty: 1
+          });
+          state.modalProd = null;
+          notify(`Добавлено в корзину: ${p.name}`);
+        };
+      }
+
+      // Корзина
+      const closeCart = document.getElementById("close-cart-btn");
+      if (closeCart) closeCart.onclick = () => { state.cartOpen = false; render(); };
+      document.querySelectorAll(".cdec-btn").forEach((b) => {
+        b.onclick = () => {
+          const idx = Number(b.dataset.cdec);
+          state.cart[idx].qty -= 1;
+          if (state.cart[idx].qty <= 0) state.cart.splice(idx, 1);
+          render();
+        };
+      });
+      document.querySelectorAll(".cinc-btn").forEach((b) => {
+        b.onclick = () => {
+          state.cart[Number(b.dataset.cinc)].qty += 1;
+          render();
+        };
+      });
+      const promoInp = document.getElementById("promo-input");
+      if (promoInp) promoInp.oninput = (e) => { state.promoCode = e.target.value; };
+      const applyPromo = document.getElementById("apply-promo-btn");
+      if (applyPromo) {
+        applyPromo.onclick = () => {
+          state.promoError = "";
+          const found = PROMOS.find((x) => x.code === state.promoCode.trim().toUpperCase());
+          const { subtotal } = cartTotals();
+          if (!found) {
+            state.promoError = "Неверный промокод (попробуйте VOSTOK10, NAURYZ15 или PLOV20)";
+            state.appliedPromo = null;
+          } else if (subtotal < found.min) {
+            state.promoError = `Минимальная сумма заказа для ${found.code}: ${fmt(found.min)}`;
+          } else {
+            state.appliedPromo = found;
+          }
+          render();
+        };
+      }
+
+      const chkForm = document.getElementById("checkout-form");
+      if (chkForm) {
+        chkForm.onsubmit = (e) => {
+          e.preventDefault();
+          const addrEl = document.getElementById("chk-address");
+          if (addrEl) state.address = addrEl.value;
+          state.pendingCheckout = {
+            name: document.getElementById("chk-name")?.value || "Гость",
+            phone: document.getElementById("chk-phone")?.value || "+7 (701) 000-00-00",
+            address: state.deliveryType === "delivery" ? state.address : "В зале (свободная посадка)",
+            comment: document.getElementById("chk-comment")?.value || ""
+          };
+          state.cartOpen = false;
+          state.paymentModalOpen = true;
+          state.paymentPhase = "form";
+          render();
+        };
+      }
+
+      // Модалка оплаты (2 заглушки)
+      const closePay = document.getElementById("close-pay-modal");
+      if (closePay) closePay.onclick = () => { state.paymentModalOpen = false; render(); };
+      document.querySelectorAll(".payscen-btn").forEach((b) => {
+        b.onclick = () => {
+          state.paymentScenario = b.dataset.payscen;
+          render();
+        };
+      });
+      const runPayBtn = document.getElementById("run-payment-btn");
+      if (runPayBtn) runPayBtn.onclick = () => executeOrderPayment();
+      const finishPayBtn = document.getElementById("finish-pay-btn");
+      if (finishPayBtn) finishPayBtn.onclick = () => {
+        state.paymentModalOpen = false;
+        notify(`Заказ #${state.lastPaymentResult?.orderNumber} оплачен и передан на кухню!`);
+      };
+      const retrySuccessBtn = document.getElementById("retry-pay-success-btn");
+      if (retrySuccessBtn) retrySuccessBtn.onclick = () => {
+        state.paymentScenario = "success";
+        state.paymentPhase = "form";
+        render();
+      };
+      const backPayFormBtn = document.getElementById("back-pay-form-btn");
+      if (backPayFormBtn) backPayFormBtn.onclick = () => {
+        state.paymentPhase = "form";
+        render();
+      };
+
+      // Авторизация клиента
+      const closeAuth = document.getElementById("close-auth-btn");
+      if (closeAuth) closeAuth.onclick = () => { state.authOpen = false; render(); };
+      document.querySelectorAll(".amode-btn").forEach((b) => {
+        b.onclick = () => { state.authMode = b.dataset.amode; render(); };
+      });
+      const quickClientBtn = document.getElementById("quick-client-btn");
+      if (quickClientBtn) {
+        quickClientBtn.onclick = () => {
+          state.user = {
+            id: "cust-demo",
+            name: "Алишер Каримов",
+            phone: "+7 (701) 555-01-01",
+            email: "client@vostok.kz",
+            role: "customer"
+          };
+          state.authOpen = false;
+          persistLocal();
+          notify("Вы вошли как клиент: Алишер Каримов");
+        };
+      }
+      const authForm = document.getElementById("auth-form");
+      if (authForm) {
+        authForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("auth-email").value.trim();
+          const pass = document.getElementById("auth-pass").value;
+          const name = document.getElementById("auth-name")?.value?.trim() || email.split("@")[0];
+          const phone = document.getElementById("auth-phone")?.value?.trim() || "+7 (701) 000-00-00";
+          const sb = getSbClient();
+
+          if (sb) {
+            try {
+              if (state.authMode === "register") {
+                const { data } = await sb.auth.signUp({
+                  email,
+                  password: pass,
+                  options: { data: { full_name: name, phone, role: "customer" } }
+                });
+                await sb.from("vostok_profiles").upsert({
+                  id: data?.user?.id || crypto.randomUUID(),
+                  email,
+                  full_name: name,
+                  phone,
+                  role: "customer"
+                });
+              } else {
+                await sb.auth.signInWithPassword({ email, password: pass });
+              }
+            } catch (_) {}
+          }
+
+          state.user = { name, email, phone, role: "customer" };
+          state.authOpen = false;
+          persistLocal();
+          notify(`Добро пожаловать, ${name}!`);
+        };
+      }
+    }
+
+    // ==================== ИИ АССИСТЕНТ (по образцу Ертіс AI + данные из вашей БД Supabase) ====================
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function formatAiText(text) {
+      return escapeHtml(text)
+        .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+        .replace(/\*(.+?)\*/g, "<i>$1</i>")
+        .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-900 font-mono text-xs font-bold">$1</code>')
+        .replace(/\n/g, "<br>");
+    }
+
+    function appendAiMessage(role, htmlContent) {
+      const box = document.getElementById("aiMessages");
+      const div = document.createElement("div");
+      div.className = `ai-msg ${role === "user" ? "ai-msg-user" : "ai-msg-bot"}`;
+      div.innerHTML = htmlContent;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+
+    function buildRestaurantContext() {
+      const availableProds = state.products.filter((p) => p.is_available);
+      const stoppedProds = state.products.filter((p) => !p.is_available);
+      const tracked = state.orders.find((o) => o.id === state.trackedOrderId) || state.orders[0];
+
+      const menuSummary = availableProds.map((p) =>
+        `- ${p.name} (Категория: ${p.category_slug}): ${p.base_price} ₸, ${p.weight} г, ${p.calories} ккал${p.is_hit ? " [ХИТ]" : ""}${p.is_spicy ? " [ОСТРОЕ]" : ""}${p.is_veg ? " [ВЕГ]" : ""}`
+      ).join("\n");
+
+      const promosSummary = PROMOS.map((pr) =>
+        `- Промокод ${pr.code}: скидка ${pr.discount}% при заказе от ${pr.min} ₸`
+      ).join("\n");
+
+      return `Ты "Восток AI" — умный ИИ-ассистент ресторана восточной кухни "ВОСТОК ХАУС".
+Отвечай вежливо, аппетитно, кратко и по делу на том языке, на котором спрашивает гость (русский или казахский).
+Все цены в ресторане исключительно в казахстанских тенге (₸).
+Важное правило ресторана: бронирования столов НЕТ. Посетитель может заказать "Доставку" или "В зале (свободная посадка — гость сам находит свободное место)".
+
+АКТУАЛЬНОЕ МЕНЮ ИЗ БАЗЫ ДАННЫХ SUPABASE (${availableProds.length} блюд в наличии):
+${menuSummary}
+
+БЛЮДА НА СТОП-ЛИСТЕ:
+${stoppedProds.map((p) => p.name).join(", ") || "Все блюда в наличии"}
+
+ДЕЙСТВУЮЩИЕ ПРОМОКОДЫ:
+${promosSummary}
+
+ТЕКУЩИЙ ЗАКАЗ ГОСТЯ В БАЗЕ:
+${tracked ? `Заказ #${tracked.number}, статус: ${STATUS_META[tracked.status]?.label}, формат: ${tracked.type === "delivery" ? "Доставка" : "В зале"}, сумма: ${tracked.total} ₸` : "Активных заказов пока нет"}`;
+    }
+
+    async function askAI(userText) {
+      const cleanText = (userText || "").trim();
+      if (!cleanText) return;
+
+      appendAiMessage("user", escapeHtml(cleanText));
+      aiHistory.push({ role: "user", parts: [{ text: cleanText }] });
+
+      const typingEl = appendAiMessage("bot", '<div class="ai-dots"><span></span><span></span><span></span></div>');
+      const sendBtn = document.getElementById("aiSendBtn");
+      const input = document.getElementById("aiInput");
+      sendBtn.disabled = true;
+      input.disabled = true;
+
+      try {
+        const tracked = state.orders.find((o) => o.id === state.trackedOrderId);
+        const result = await window.callVostokAi({
+          sbUrl: state.sbUrl,
+          sbKey: state.sbKey,
+          aiFn: state.aiFn,
+          systemPrompt: buildRestaurantContext(),
+          history: aiHistory,
+          userText: cleanText,
+          dbSnapshot: {
+            isStaff: false,
+            products: state.products,
+            orders: state.orders,
+            trackedOrder: tracked
+          }
+        });
+
+        aiHistory.push({ role: "model", parts: [{ text: result.reply }] });
+        typingEl.innerHTML = formatAiText(result.reply);
+      } catch (err) {
+        aiHistory.pop();
+        typingEl.innerHTML = `<span class="text-rose-600 font-bold">Ошибка связи с ИИ:</span><br>${escapeHtml(err.message || String(err))}`;
+      } finally {
+        const box = document.getElementById("aiMessages");
+        box.scrollTop = box.scrollHeight;
+        sendBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    function setupAiWidget() {
+      const fab = document.getElementById("aiFab");
+      const panel = document.getElementById("aiPanel");
+      const closeBtn = document.getElementById("aiClose");
+      const clearBtn = document.getElementById("aiClear");
+      const form = document.getElementById("aiForm");
+      const input = document.getElementById("aiInput");
+
+      fab.onclick = () => {
+        panel.classList.toggle("hidden");
+        if (!panel.classList.contains("hidden")) input.focus();
+      };
+      closeBtn.onclick = () => panel.classList.add("hidden");
+      clearBtn.onclick = () => {
+        aiHistory = [];
+        document.getElementById("aiMessages").innerHTML = `
+          <div class="ai-msg ai-msg-bot">
+            История чата очищена. Задайте любой вопрос по меню, ценам в <b>₸</b> или вашему заказу!
+          </div>`;
+      };
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const text = input.value;
+        input.value = "";
+        await askAI(text);
+      };
+      document.querySelectorAll(".ai-quick").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const prompt = btn.getAttribute("data-prompt");
+          if (prompt && !document.getElementById("aiSendBtn").disabled) askAI(prompt);
+        });
+      });
+    }
+
+    render();
+    setupAiWidget();
+    syncFromSupabase();
+  </script>
+</body>
+</html>
