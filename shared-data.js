@@ -19,16 +19,80 @@ window.VOSTOK_CATEGORIES = [
   { slug: "drinks", name: "Десерты и напитки" }
 ];
 
-window.VOSTOK_ADDONS = [
-  { id: "a-1", name: "Дополнительная баранина (80 г)", price: 950 },
-  { id: "a-2", name: "Казы (конская колбаса, 50 г)", price: 890 },
-  { id: "a-3", name: "Соус Ткемали сливовый", price: 350 },
-  { id: "a-4", name: "Соус Наршараб (гранатовый)", price: 390 },
-  { id: "a-5", name: "Домашняя сметана с зеленью", price: 350 },
-  { id: "a-6", name: "Острый стручковый перец", price: 250 },
-  { id: "a-7", name: "Перепелиные яйца (3 шт)", price: 450 },
-  { id: "a-8", name: "Маринованный красный лук с сумахом", price: 300 }
-];
+window.VOSTOK_ADDONS_BY_CATEGORY = {
+  plov: [
+    { id: "a-plov-1", name: "Казы (конская колбаса, 50 г)", price: 890 },
+    { id: "a-plov-2", name: "Дополнительная томлёная баранина (80 г)", price: 950 },
+    { id: "a-plov-3", name: "Перепелиные яйца (3 шт)", price: 450 },
+    { id: "a-plov-4", name: "Печёная головка чеснока и стручковый чили", price: 290 },
+    { id: "a-plov-5", name: "Салат Ачичук к плову (мини-порция)", price: 590 },
+    { id: "a-plov-6", name: "Нут и сладкий кишмиш (двойная порция)", price: 350 }
+  ],
+  grill: [
+    { id: "a-grill-1", name: "Соус Наршараб (гранатовый)", price: 390 },
+    { id: "a-grill-2", name: "Соус Ткемали сливовый", price: 350 },
+    { id: "a-grill-3", name: "Маринованный красный лук с сумахом", price: 300 },
+    { id: "a-grill-4", name: "Овощи-гриль на углях (томат, баклажан, перец)", price: 790 },
+    { id: "a-grill-5", name: "Острый соус Аджика домашняя", price: 320 },
+    { id: "a-grill-6", name: "Свежая кинза и фиолетовый базилик", price: 350 }
+  ],
+  bakery: [
+    { id: "a-bak-1", name: "Домашний каймак (густая сметана)", price: 390 },
+    { id: "a-bak-2", name: "Топлёное сливочное масло с травами", price: 320 },
+    { id: "a-bak-3", name: "Двойная порция тягучего сыра Сулугуни", price: 550 },
+    { id: "a-bak-4", name: "Острый томатно-чесночный соус Лазджан", price: 300 },
+    { id: "a-bak-5", name: "Пиала горячего мясного бульона к самсе", price: 450 }
+  ],
+  manti: [
+    { id: "a-manti-1", name: "Домашняя сметана с горной зеленью", price: 350 },
+    { id: "a-manti-2", name: "Острый уйгурский соус Лазджан с чесноком", price: 300 },
+    { id: "a-manti-3", name: "Сливочно-чесночная подлива с кинзой", price: 380 },
+    { id: "a-manti-4", name: "Дополнительная порция рубленого мяса (70 г)", price: 850 },
+    { id: "a-manti-5", name: "Виноградный уксус с чёрным перцем", price: 250 }
+  ],
+  soups: [
+    { id: "a-soup-1", name: "Домашняя сметана (50 г)", price: 350 },
+    { id: "a-soup-2", name: "Свежая кинза, укроп и зелёный лук", price: 290 },
+    { id: "a-soup-3", name: "Острый стручковый перец и чеснок", price: 250 },
+    { id: "a-soup-4", name: "Дополнительная баранина на косточке (80 г)", price: 890 },
+    { id: "a-soup-5", name: "Домашние сухарики с зирой и паприкой", price: 250 }
+  ],
+  snacks: [
+    { id: "a-snk-1", name: "Зёрна спелого граната и дроблёный грецкий орех", price: 450 },
+    { id: "a-snk-2", name: "Заправка из ароматного кунжутного масла", price: 320 },
+    { id: "a-snk-3", name: "Свежий пучок кинзы и райхана", price: 350 },
+    { id: "a-snk-4", name: "Острый перец чили кольцами", price: 220 },
+    { id: "a-snk-5", name: "Кубики рассольного сыра брынза", price: 490 }
+  ],
+  drinks: [
+    { id: "a-drk-1", name: "Кристаллы восточного сахара Нават", price: 350 },
+    { id: "a-drk-2", name: "Горный цветочный мёд в пиале (50 г)", price: 450 },
+    { id: "a-drk-3", name: "Свежий лимон и листья садовой мяты", price: 290 },
+    { id: "a-drk-4", name: "Иранские фисташки и жареный миндаль (40 г)", price: 690 },
+    { id: "a-drk-5", name: "Восточный рахат-лукум и курага к чаю", price: 590 },
+    { id: "a-drk-6", name: "Сироп (карамельный / ванильный / ореховый)", price: 320 }
+  ]
+};
+
+window.VOSTOK_BASE_BY_CATEGORY = {
+  plov:   { title: "Подача с хлебом", options: ["Тандырная лепёшка", "Тонкий лаваш", "Без хлеба"] },
+  grill:  { title: "Подача с хлебом", options: ["Тандырная лепёшка", "Тонкий лаваш", "Без хлеба"] },
+  bakery: { title: "Температура подачи", options: ["С пылу с жару из тандыра", "Тёплая подача"] },
+  manti:  { title: "Подача с хлебом", options: ["Тандырная лепёшка", "Тонкий лаваш", "Без хлеба"] },
+  soups:  { title: "Подача с хлебом", options: ["Тандырная лепёшка", "Баурсаки (3 шт)", "Без хлеба"] },
+  snacks: { title: "Заправка", options: ["С классической заправкой", "С оливковым маслом", "Без заправки"] },
+  drinks: { title: "Сладость и подача", options: ["Без сахара", "С восточным сахаром Нават", "С горным мёдом"] }
+};
+
+window.getAddonsForCategory = function (catSlug) {
+  return window.VOSTOK_ADDONS_BY_CATEGORY[catSlug] || window.VOSTOK_ADDONS_BY_CATEGORY.plov;
+};
+
+window.getBaseConfigForCategory = function (catSlug) {
+  return window.VOSTOK_BASE_BY_CATEGORY[catSlug] || window.VOSTOK_BASE_BY_CATEGORY.plov;
+};
+
+window.VOSTOK_ADDONS = Object.values(window.VOSTOK_ADDONS_BY_CATEGORY).flat();
 
 window.VOSTOK_BASE_OPTIONS = ["Тандырная лепёшка", "Тонкий лаваш", "Без хлеба"];
 
@@ -695,47 +759,37 @@ window.saveSharedDb = function (dbPatch) {
   } catch (_) {}
 };
 
-// Ответ ИИ-ассистента (через Supabase Edge Function vostok-ai / ertis-ai + умный ответ по живым данным БД)
+// Ответ ИИ-ассистента (через Supabase Edge Function vostok-ai + сверхбыстрый ответ по живым данным БД)
 window.callVostokAi = async function ({ sbUrl, sbKey, aiFn, systemPrompt, history, userText, dbSnapshot }) {
   const urlBase = (sbUrl || window.VOSTOK_DEFAULT_SB_URL).replace(/\/+$/, "");
   const key = sbKey || window.VOSTOK_DEFAULT_SB_KEY;
-  const fnNames = Array.from(new Set([aiFn || "vostok-ai", "vostok-ai", "ertis-ai"]));
+  const fn = aiFn || "vostok-ai";
 
-  // Вшиваем живой контекст БД также и в последнее сообщение истории, чтобы любая Edge Function отвечала строго по данным ресторана
-  const enrichedHistory = (history || []).slice(-10).map((msg, idx, arr) => {
-    if (idx === arr.length - 1 && msg.role === "user") {
-      return {
-        role: "user",
-        parts: [{ text: `[КОНТЕКСТ БАЗЫ ДАННЫХ РЕСТОРАНА ВОСТОК ХАУС]:\n${systemPrompt}\n\n[ВОПРОС ПОЛЬЗОВАТЕЛЯ]: ${userText}` }]
-      };
-    }
-    return msg;
-  });
-
-  for (const fn of fnNames) {
-    try {
-      const res = await fetch(`${urlBase}/functions/v1/${fn}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": key
-        },
-        body: JSON.stringify({
-          systemPrompt,
-          history: enrichedHistory
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data?.reply) {
-        // Проверяем, что функция не вернула ответ от старого гидрологического бота (Ертіс / гидропост)
-        const rLow = data.reply.toLowerCase();
-        const isHydroReply = rLow.includes("гидропост") || rLow.includes("ертіс") || rLow.includes("бекет") || rLow.includes("шүлбі");
-        if (!isHydroReply) {
-          return { reply: data.reply, source: `Supabase Edge (${fn})` };
-        }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(`${urlBase}/functions/v1/${fn}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": key
+      },
+      body: JSON.stringify({
+        systemPrompt,
+        history: (history || []).slice(-6)
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data?.reply) {
+      const rLow = data.reply.toLowerCase();
+      const isHydroReply = rLow.includes("гидропост") || rLow.includes("ертіс") || rLow.includes("бекет") || rLow.includes("шүлбі");
+      if (!isHydroReply) {
+        return { reply: data.reply, source: `Supabase Edge (${fn})` };
       }
-    } catch (_) {}
-  }
+    }
+  } catch (_) {}
 
   // Если облачная Edge Function ещё не развернута или ключ в Google Cloud требует активации —
   // формируем точный ответ напрямую по живым данным базы данных (меню, цены в ₸, промокоды, заказы, склад)

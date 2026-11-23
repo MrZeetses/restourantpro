@@ -221,7 +221,7 @@
           sb.from("products").select("*").order("created_at", { ascending: true }),
           sb.from("inventory").select("*").order("name", { ascending: true }),
           sb.from("orders").select("*").order("created_at", { ascending: false }).limit(50),
-          sb.from("vostok_profiles").select("*").neq("role", "customer"),
+          sb.from("profiles").select("*").neq("role", "customer"),
           sb.from("payment_logs").select("*").order("created_at", { ascending: false }).limit(30)
         ]);
 
@@ -947,7 +947,7 @@
             try {
               const { data } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name, role } } });
               if (data?.user?.id) newMember.id = data.user.id;
-              await sb.from("vostok_profiles").upsert({ id: newMember.id, email, full_name: name, role, is_on_shift: true });
+              await sb.from("profiles").upsert({ id: newMember.id, email, full_name: name, role, is_on_shift: true });
             } catch (_) {}
           }
 
@@ -1212,7 +1212,7 @@
             m.role = e.target.value;
             persistLocal();
             const sb = getSbClient();
-            if (sb) { try { await sb.from("vostok_profiles").update({ role: m.role }).eq("id", m.id); } catch (_) {} }
+            if (sb) { try { await sb.from("profiles").update({ role: m.role }).eq("id", m.id); } catch (_) {} }
             notify(`Роль ${m.name} изменена на ${ROLE_META[m.role].label}`);
           }
         };
@@ -1224,7 +1224,7 @@
             m.shift = !m.shift;
             persistLocal();
             const sb = getSbClient();
-            if (sb) { try { await sb.from("vostok_profiles").update({ is_on_shift: m.shift }).eq("id", m.id); } catch (_) {} }
+            if (sb) { try { await sb.from("profiles").update({ is_on_shift: m.shift }).eq("id", m.id); } catch (_) {} }
             render();
           }
         };

@@ -304,8 +304,9 @@
       if (!state.modalProd) return 0;
       const sz = state.modalProd.sizes[state.selSizeIdx] || state.modalProd.sizes[0];
       const base = Math.round(state.modalProd.base_price * sz.mult);
+      const catAddons = window.getAddonsForCategory ? window.getAddonsForCategory(state.modalProd.category_slug) : ADDONS;
       const adds = state.selAddons.reduce((s, id) => {
-        const a = ADDONS.find((x) => x.id === id);
+        const a = catAddons.find((x) => x.id === id) || ADDONS.find((x) => x.id === id);
         return s + (a ? a.price : 0);
       }, 0);
       return base + adds;
@@ -480,24 +481,6 @@
             </div>
           </section>
 
-          <section class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap gap-2">
-              ${[
-                { id: "all", label: "Все блюда (" + state.products.length + ")" },
-                { id: "hit", label: "🔥 Хиты" },
-                { id: "spicy", label: "🌶️ Острое" },
-                { id: "veg", label: "🌿 Без мяса" }
-              ].map((f) => `
-                <button data-tag="${f.id}" class="tag-btn px-3.5 py-1.5 rounded-full text-xs font-bold border transition ${state.filterTag === f.id ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-700 border-stone-200 hover:border-stone-300"}">
-                  ${f.label}
-                </button>
-              `).join("")}
-            </div>
-            <div class="text-xs font-semibold text-stone-500">
-              Найдено позиций: <b class="text-stone-900">${filtered.length}</b> • Валюта: <b class="text-orange-600">Тенге (₸)</b>
-            </div>
-          </section>
-
           <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             ${filtered.map((p) => `
               <article data-prod="${p.id}" class="prod-card bg-white rounded-3xl p-4 shadow-sm border border-stone-100 flex flex-col justify-between transition ${p.is_available ? "hover:shadow-md cursor-pointer" : "opacity-60"}">
@@ -547,6 +530,8 @@
         const p = state.modalProd;
         const sz = p.sizes[state.selSizeIdx] || p.sizes[0];
         const total = modalPrice();
+        const catAddons = window.getAddonsForCategory ? window.getAddonsForCategory(p.category_slug) : ADDONS;
+        const baseCfg = window.getBaseConfigForCategory ? window.getBaseConfigForCategory(p.category_slug) : { title: "Подача с хлебом", options: BASE_OPTIONS };
         html += `
           <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
             <div class="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 relative my-8">
@@ -570,9 +555,9 @@
                     </div>
                   </div>
                   <div>
-                    <div class="text-xs font-bold text-stone-600 mb-1.5">Подача с хлебом</div>
+                    <div class="text-xs font-bold text-stone-600 mb-1.5">${baseCfg.title}</div>
                     <div class="flex flex-wrap gap-1.5">
-                      ${BASE_OPTIONS.map((b) => `
+                      ${baseCfg.options.map((b) => `
                         <button data-base="${b}" class="base-btn px-3 py-1.5 rounded-xl text-xs font-semibold border ${state.selBase === b ? "border-orange-500 bg-orange-50 text-orange-700" : "border-stone-200 text-stone-600"}">${b}</button>
                       `).join("")}
                     </div>
@@ -580,7 +565,7 @@
                   <div>
                     <div class="text-xs font-bold text-stone-600 mb-1.5">Добавить по вкусу</div>
                     <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                      ${ADDONS.map((a) => {
+                      ${catAddons.map((a) => {
                         const active = state.selAddons.includes(a.id);
                         return `
                           <button data-addon="${a.id}" class="addon-btn w-full flex justify-between items-center px-3 py-2 rounded-xl border text-xs ${active ? "border-orange-500 bg-orange-50 font-bold" : "border-stone-200"}">
@@ -1030,9 +1015,10 @@
         card.onclick = () => {
           const p = state.products.find((x) => x.id === card.dataset.prod);
           if (p && p.is_available) {
+            const baseCfg = window.getBaseConfigForCategory ? window.getBaseConfigForCategory(p.category_slug) : { options: BASE_OPTIONS };
             state.modalProd = p;
             state.selSizeIdx = 0;
-            state.selBase = BASE_OPTIONS[0];
+            state.selBase = baseCfg.options[0] || BASE_OPTIONS[0];
             state.selAddons = [];
             render();
           }
@@ -1092,7 +1078,8 @@
         addCartBtn.onclick = () => {
           const p = state.modalProd;
           const sz = p.sizes[state.selSizeIdx] || p.sizes[0];
-          const addonNames = state.selAddons.map((id) => ADDONS.find((a) => a.id === id)?.name).filter(Boolean);
+          const catAddons = window.getAddonsForCategory ? window.getAddonsForCategory(p.category_slug) : ADDONS;
+          const addonNames = state.selAddons.map((id) => (catAddons.find((a) => a.id === id) || ADDONS.find((a) => a.id === id))?.name).filter(Boolean);
           state.cart.push({
             id: p.id,
             name: p.name,
@@ -1231,7 +1218,7 @@
                   password: pass,
                   options: { data: { full_name: name, phone, role: "customer" } }
                 });
-                await sb.from("vostok_profiles").upsert({
+                await sb.from("profiles").upsert({
                   id: data?.user?.id || crypto.randomUUID(),
                   email,
                   full_name: name,

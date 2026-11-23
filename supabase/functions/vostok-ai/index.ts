@@ -7,18 +7,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+let cachedApiKey = '';
+
 async function resolveGeminiKey(): Promise<string> {
+  if (cachedApiKey) return cachedApiKey;
   const envKey = Deno.env.get('GEMINI_API_KEY')?.trim();
-  if (envKey) return envKey;
+  if (envKey) {
+    cachedApiKey = envKey;
+    return envKey;
+  }
 
   const sbUrl = Deno.env.get('SUPABASE_URL') || '';
   const sbServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   if (sbUrl && sbServiceKey) {
     const sb = createClient(sbUrl, sbServiceKey);
-    const { data } = await sb.from('vostok_secrets').select('val').eq('key', 'GEMINI_API_KEY').single();
-    if (data?.val) return String(data.val).trim();
+    const { data } = await sb.rpc('get_vostok_ai_key');
+    if (data) {
+      cachedApiKey = String(data).trim();
+      return cachedApiKey;
+    }
   }
   return '';
+}
+
+async function callModel(url: string, payload: unknown, timeoutMs = 4500): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    }
+    const reply = data?.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text || '')
+      .join('')
+      .trim();
+    if (!reply) throw new Error('Empty reply');
+    return reply;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -39,60 +73,32 @@ Deno.serve(async (req: Request) => {
 
     const payload = {
       systemInstruction: { parts: [{ text: systemPrompt || '' }] },
-      contents: history || [],
-      generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+      contents: (history || []).slice(-6),
+      generationConfig: { temperature: 0.35, maxOutputTokens: 450 },
     };
 
     const encodedKey = encodeURIComponent(apiKey);
-    const models = [
+    const fastModels = [
       'gemini-3.1-flash-lite',
-      'gemini-3-flash-preview',
       'gemini-flash-lite-latest',
-      'gemini-3.8-flash',
-      'gemini-3.5-flash-lite',
-      'gemma-4-26b-a4b-it'
+      'gemma-4-26b-a4b-it',
+      'gemini-3-flash-preview'
     ];
-    const endpoints = models.map(
+    const endpoints = fastModels.map(
       (m) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodedKey}`
     );
 
-    const errors: string[] = [];
-
-    for (const url of endpoints) {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        errors.push(data?.error?.message || `HTTP ${res.status}`);
-        continue;
-      }
-
-      const reply = data?.candidates?.[0]?.content?.parts
-        ?.map((p: { text?: string }) => p.text || '')
-        .join('')
-        .trim();
-
-      if (reply) {
-        return new Response(
-          JSON.stringify({ reply }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      errors.push('Модель вернула пустой ответ');
-    }
+    // Запускаем модели параллельно и возвращаем первый же быстрый успешный ответ
+    const reply = await Promise.any(endpoints.map((url) => callModel(url, payload, 4500)));
 
     return new Response(
-      JSON.stringify({ error: errors.join(' | ') }),
-      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ reply }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: String(err) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
